@@ -15,6 +15,7 @@
 cmake_minimum_required(VERSION 2.8.12)  # Ships with Ubuntu 14.04 (Trusty)
 
 project(cartographer_ros)
+add_compile_options(-std=c++14)
 
 set(PACKAGE_DEPENDENCIES
   cartographer_ros_msgs
@@ -48,7 +49,6 @@ find_package(cartographer REQUIRED)
 include("${CARTOGRAPHER_CMAKE_DIR}/functions.cmake")
 option(BUILD_GRPC "build features that require Cartographer gRPC support" false)
 google_initialize_cartographer_project()
-google_enable_testing()
 
 find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
 
