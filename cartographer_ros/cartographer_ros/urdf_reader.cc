@@ -24,7 +24,7 @@
 
 namespace cartographer_ros {
 
-std::vector<geometry_msgs::TransformStamped> ReadStaticTransformsFromUrdf(
+std::vector<geometry_msgs::msg::TransformStamped> ReadStaticTransformsFromUrdf(
     const std::string& urdf_filename, tf2_ros::Buffer* const tf_buffer) {
   urdf::Model model;
   CHECK(model.initFile(urdf_filename));
@@ -34,7 +34,7 @@ std::vector<geometry_msgs::TransformStamped> ReadStaticTransformsFromUrdf(
   std::vector<boost::shared_ptr<urdf::Link> > links;
 #endif
   model.getLinks(links);
-  std::vector<geometry_msgs::TransformStamped> transforms;
+  std::vector<geometry_msgs::msg::TransformStamped> transforms;
   for (const auto& link : links) {
     if (!link->getParent() || link->parent_joint->type != urdf::Joint::FIXED) {
       continue;
@@ -42,7 +42,7 @@ std::vector<geometry_msgs::TransformStamped> ReadStaticTransformsFromUrdf(
 
     const urdf::Pose& pose =
         link->parent_joint->parent_to_joint_origin_transform;
-    geometry_msgs::TransformStamped transform;
+    geometry_msgs::msg::TransformStamped transform;
     transform.transform =
         ToGeometryMsgTransform(cartographer::transform::Rigid3d(
             Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z),

@@ -55,8 +55,8 @@ set(srv_files
   "srv/GetTrajectoryStates.srv"
   "srv/ReadMetrics.srv"
   "srv/StartTrajectory.srv"
-  "srv/SubmapQuery.srv"
   "srv/TrajectoryQuery.srv"
+  "srv/SubmapQuery.srv"
   "srv/WriteState.srv"
 )
 

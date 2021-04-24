@@ -20,10 +20,9 @@
 #include <functional>
 #include <queue>
 
-#include "cartographer_ros_msgs/BagfileProgress.h"
-#include "ros/node_handle.h"
-#include "rosbag/bag.h"
-#include "rosbag/view.h"
+#include "cartographer_ros_msgs/msg/bagfile_progress.hpp"
+#include <rosbag2_cpp/reader.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include "tf2_ros/buffer.h"
 
 namespace cartographer_ros {
@@ -36,15 +35,15 @@ class PlayableBag {
       std::function<bool /* forward_message_to_buffer */ (
           const rosbag::MessageInstance&)>;
 
-  PlayableBag(const std::string& bag_filename, int bag_id, ros::Time start_time,
-              ros::Time end_time, ros::Duration buffer_delay,
+  PlayableBag(const std::string& bag_filename, int bag_id, rclcpp::Time start_time,
+              rclcpp::Time end_time, ros::Duration buffer_delay,
               FilteringEarlyMessageHandler filtering_early_message_handler);
 
-  ros::Time PeekMessageTime() const;
+  rclcpp::Time PeekMessageTime() const;
   rosbag::MessageInstance GetNextMessage(
       cartographer_ros_msgs::BagfileProgress* progress);
   bool IsMessageAvailable() const;
-  std::tuple<ros::Time, ros::Time> GetBeginEndTime() const;
+  std::tuple<rclcpp::Time, rclcpp::Time> GetBeginEndTime() const;
 
   int bag_id() const;
   std::set<std::string> topics() const { return topics_; }
@@ -82,13 +81,13 @@ class PlayableBagMultiplexer {
   GetNextMessage();
 
   bool IsMessageAvailable() const;
-  ros::Time PeekMessageTime() const;
+  rclcpp::Time PeekMessageTime() const;
 
   std::set<std::string> topics() const { return topics_; }
 
  private:
   struct BagMessageItem {
-    ros::Time message_timestamp;
+    rclcpp::Time message_timestamp;
     int bag_index;
     struct TimestampIsGreater {
       bool operator()(const BagMessageItem& l, const BagMessageItem& r) {
@@ -101,7 +100,7 @@ class PlayableBagMultiplexer {
   // Publishes information about the bag-file(s) processing and its progress
   ros::Publisher bag_progress_pub_;
   // Map between bagfile id and the last time when its progress was published
-  std::map<int, ros::Time> bag_progress_time_map_;
+  std::map<int, rclcpp::Time> bag_progress_time_map_;
   // The time interval of publishing bag-file(s) processing in seconds
   double progress_pub_interval_;
 

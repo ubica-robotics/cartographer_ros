@@ -48,7 +48,7 @@ namespace cartographer_ros {
 namespace {
 
 struct FrameProperties {
-  ros::Time last_timestamp;
+  rclcpp::Time last_timestamp;
   std::string topic;
   std::vector<float> time_deltas;
   std::unique_ptr<std::ofstream> timing_file;
@@ -65,11 +65,11 @@ const double kMaxGapPointsData = 0.1;
 const double kMaxGapImuData = 0.05;
 const std::set<std::string> kPointDataTypes = {
     std::string(
-        ros::message_traits::DataType<sensor_msgs::PointCloud2>::value()),
+        ros::message_traits::DataType<sensor_msgs::msg::PointCloud2>::value()),
     std::string(ros::message_traits::DataType<
-                sensor_msgs::MultiEchoLaserScan>::value()),
+                sensor_msgs::msg::MultiEchoLaserScan>::value()),
     std::string(
-        ros::message_traits::DataType<sensor_msgs::LaserScan>::value())};
+        ros::message_traits::DataType<sensor_msgs::msg::LaserScan>::value())};
 
 std::unique_ptr<std::ofstream> CreateTimingFile(const std::string& frame_id) {
   auto timing_file = absl::make_unique<std::ofstream>(
@@ -95,7 +95,7 @@ std::unique_ptr<std::ofstream> CreateTimingFile(const std::string& frame_id) {
   return timing_file;
 }
 
-void CheckImuMessage(const sensor_msgs::Imu& imu_message) {
+void CheckImuMessage(const sensor_msgs::msg::Imu& imu_message) {
   auto linear_acceleration = ToEigen(imu_message.linear_acceleration);
   if (std::isnan(linear_acceleration.norm()) ||
       linear_acceleration.norm() < kMinLinearAcceleration ||
@@ -111,11 +111,11 @@ void CheckImuMessage(const sensor_msgs::Imu& imu_message) {
   }
 }
 
-bool IsValidPose(const geometry_msgs::Pose& pose) {
+bool IsValidPose(const geometry_msgs::msg::Pose& pose) {
   return ToRigid3d(pose).IsValid();
 }
 
-void CheckOdometryMessage(const nav_msgs::Odometry& message) {
+void CheckOdometryMessage(const nav_msgs::msg::Odometry& message) {
   const auto& pose = message.pose.pose;
   if (!IsValidPose(pose)) {
     LOG_FIRST_N(ERROR, 3) << "frame_id " << message.header.frame_id << " time "
@@ -149,7 +149,7 @@ class RangeDataChecker {
   template <typename MessageType>
   void CheckMessage(const MessageType& message) {
     const std::string& frame_id = message.header.frame_id;
-    ros::Time current_time_stamp = message.header.stamp;
+    rclcpp::Time current_time_stamp = message.header.stamp;
     RangeChecksum current_checksum;
     cartographer::common::Time time_from, time_to;
     ReadRangeMessage(message, &current_checksum, &time_from, &time_to);
@@ -263,31 +263,31 @@ void Run(const std::string& bag_filename, const bool dump_timing) {
   for (const rosbag::MessageInstance& message : view) {
     ++message_index;
     std::string frame_id;
-    ros::Time time;
-    if (message.isType<sensor_msgs::PointCloud2>()) {
-      auto msg = message.instantiate<sensor_msgs::PointCloud2>();
+    rclcpp::Time time;
+    if (message.isType<sensor_msgs::msg::PointCloud2>()) {
+      auto msg = message.instantiate<sensor_msgs::msg::PointCloud2>();
       time = msg->header.stamp;
       frame_id = msg->header.frame_id;
       range_data_checker.CheckMessage(*msg);
-    } else if (message.isType<sensor_msgs::MultiEchoLaserScan>()) {
-      auto msg = message.instantiate<sensor_msgs::MultiEchoLaserScan>();
+    } else if (message.isType<sensor_msgs::msg::MultiEchoLaserScan>()) {
+      auto msg = message.instantiate<sensor_msgs::msg::MultiEchoLaserScan>();
       time = msg->header.stamp;
       frame_id = msg->header.frame_id;
       range_data_checker.CheckMessage(*msg);
-    } else if (message.isType<sensor_msgs::LaserScan>()) {
-      auto msg = message.instantiate<sensor_msgs::LaserScan>();
+    } else if (message.isType<sensor_msgs::msg::LaserScan>()) {
+      auto msg = message.instantiate<sensor_msgs::msg::LaserScan>();
       time = msg->header.stamp;
       frame_id = msg->header.frame_id;
       range_data_checker.CheckMessage(*msg);
-    } else if (message.isType<sensor_msgs::Imu>()) {
-      auto msg = message.instantiate<sensor_msgs::Imu>();
+    } else if (message.isType<sensor_msgs::msg::Imu>()) {
+      auto msg = message.instantiate<sensor_msgs::msg::Imu>();
       time = msg->header.stamp;
       frame_id = msg->header.frame_id;
       CheckImuMessage(*msg);
       num_imu_messages++;
       sum_imu_acceleration += ToEigen(msg->linear_acceleration).norm();
-    } else if (message.isType<nav_msgs::Odometry>()) {
-      auto msg = message.instantiate<nav_msgs::Odometry>();
+    } else if (message.isType<nav_msgs::msg::Odometry>()) {
+      auto msg = message.instantiate<nav_msgs::msg::Odometry>();
       time = msg->header.stamp;
       frame_id = msg->header.frame_id;
       CheckOdometryMessage(*msg);
@@ -385,7 +385,7 @@ void Run(const std::string& bag_filename, const bool dump_timing) {
                  << " s, recommended is [0.0005, 0.05] s with no jitter.";
     }
     if (frame_properties.data_type ==
-            ros::message_traits::DataType<sensor_msgs::Imu>::value() &&
+            ros::message_traits::DataType<sensor_msgs::msg::Imu>::value() &&
         max_time_delta > kMaxGapImuData) {
       LOG(ERROR) << "IMU data (frame_id: \"" << entry_pair.first
                  << "\") has a large gap, largest is " << max_time_delta
