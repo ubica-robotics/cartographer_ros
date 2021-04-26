@@ -28,7 +28,7 @@ rclcpp::Time ToRos(::cartographer::common::Time time) {
        ::cartographer::common::kUtsEpochOffsetFromUnixEpochInSeconds *
            10000000ll) *
       100ll;
-  rclcpp::Time ros_time(ns_since_unix_epoch);
+  rclcpp::Time ros_time(ns_since_unix_epoch, rcl_clock_type_t::RCL_ROS_TIME);
   return ros_time;
 }
 
@@ -37,6 +37,7 @@ rclcpp::Time ToRos(::cartographer::common::Time time) {
   // The epoch of the ICU Universal Time Scale is "0001-01-01 00:00:00.0 +0000",
   // exactly 719162 days before the Unix epoch.
   return ::cartographer::common::FromUniversal(
+      cartographer::common::kUtsEpochOffsetFromUnixEpochInSeconds * 10000000ll +
       (time.nanoseconds() + 50) / 100);  // + 50 to get the rounding correct.
 }
 

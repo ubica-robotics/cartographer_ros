@@ -35,6 +35,8 @@ option(BUILD_GRPC "build features that require Cartographer gRPC support" false)
 # ???
 google_initialize_cartographer_project()
 
+add_compile_options(-g)
+
 # rosbag2 ?
 find_package(cartographer_ros_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -222,3 +224,5 @@ install(TARGETS
 #      include/${INSTALL_DIR}
 #  )
 #endforeach()
+
+ament_package()

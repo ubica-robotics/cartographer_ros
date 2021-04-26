@@ -71,6 +71,8 @@ class Node : public rclcpp::Node
   const double resolution_;
 
   absl::Mutex mutex_;
+  rclcpp::CallbackGroup::SharedPtr callback_group_;
+  rclcpp::executors::SingleThreadedExecutor::SharedPtr callback_group_executor_;
   ::rclcpp::Client<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client_ GUARDED_BY(mutex_);
   ::rclcpp::Subscription<cartographer_ros_msgs::msg::SubmapList>::SharedPtr submap_list_subscriber_ GUARDED_BY(mutex_);
   ::rclcpp::Publisher<::nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_ GUARDED_BY(mutex_);
@@ -84,7 +86,16 @@ Node::Node(const double resolution, const double publish_period_sec)
     : rclcpp::Node("cartographer_occupancy_grid_node"),
       resolution_(resolution)
 {
-  client_ = this->create_client<cartographer_ros_msgs::srv::SubmapQuery>(kSubmapQueryServiceName);
+  callback_group_ = this->create_callback_group(
+    rclcpp::CallbackGroupType::MutuallyExclusive,
+    false);
+  callback_group_executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+  callback_group_executor_->add_callback_group(callback_group_, this->get_node_base_interface());
+  client_ = this->create_client<cartographer_ros_msgs::srv::SubmapQuery>(
+        kSubmapQueryServiceName,
+        rmw_qos_profile_services_default,
+        callback_group_
+        );
 
   occupancy_grid_publisher_ = this->create_publisher<::nav_msgs::msg::OccupancyGrid>(
       kOccupancyGridTopic, rclcpp::QoS(10).transient_local());
@@ -96,7 +107,7 @@ Node::Node(const double resolution, const double publish_period_sec)
     });
 
   auto handleSubmapList =
-    [this](const typename cartographer_ros_msgs::msg::SubmapList::SharedPtr msg) -> void
+    [this, publish_period_sec](const typename cartographer_ros_msgs::msg::SubmapList::SharedPtr msg) -> void
     {
     absl::MutexLock locker(&mutex_);
 
@@ -126,8 +137,9 @@ Node::Node(const double resolution, const double publish_period_sec)
         continue;
       }
 
-      auto fetched_textures =
-          ::cartographer_ros::FetchSubmapTextures(id, client_, shared_from_this());
+      auto fetched_textures = cartographer_ros::FetchSubmapTextures(
+            id, client_, callback_group_executor_,
+            std::chrono::milliseconds(int(publish_period_sec * 1000)));
       if (fetched_textures == nullptr) {
         continue;
       }
@@ -177,13 +189,15 @@ void Node::DrawAndPublish() {
 }  // namespace cartographer_ros
 
 int main(int argc, char** argv) {
+  // Init rclcpp first because gflags reorders command line flags in argv
+  rclcpp::init(argc, argv);
+
+  google::AllowCommandLineReparsing();
   google::InitGoogleLogging(argv[0]);
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  google::ParseCommandLineFlags(&argc, &argv, false);
 
   CHECK(FLAGS_include_frozen_submaps || FLAGS_include_unfrozen_submaps)
       << "Ignoring both frozen and unfrozen submaps makes no sense.";
-
-  ::rclcpp::init(argc, argv);
 
   cartographer_ros::ScopedRosLogSink ros_log_sink;
   auto node = std::make_shared<cartographer_ros::Node>(FLAGS_resolution, FLAGS_publish_period_sec);
