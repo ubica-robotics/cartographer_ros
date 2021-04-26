@@ -90,14 +90,12 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state) {
 Node::Node(
     const NodeOptions& node_options,
     std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer,
     const bool collect_metrics)
     : rclcpp::Node("cartographer_node"), node_options_(node_options)
 {
-  constexpr double kTfBufferCacheTimeInSeconds = 10.;
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this) ;
-  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock(), ::tf2::durationFromSec(kTfBufferCacheTimeInSeconds));
-  tf_listener_.reset(new tf2_ros::TransformListener(*tf_buffer_));
-  map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), tf_buffer_.get()));
+  map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), tf_buffer.get()));
 
   absl::MutexLock lock(&mutex_);
   if (collect_metrics) {

@@ -60,6 +60,7 @@ class Node : public rclcpp::Node {
  public:
   Node(const NodeOptions& node_options,
        std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
+       std::shared_ptr<tf2_ros::Buffer> tf_buffer,
        bool collect_metrics);
   ~Node();
 
@@ -179,8 +180,6 @@ class Node : public rclcpp::Node {
   const NodeOptions node_options_;
 
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
   absl::Mutex mutex_;
   std::unique_ptr<cartographer_ros::metrics::FamilyFactory> metrics_registry_;
