@@ -72,13 +72,13 @@ class PlayableBag {
 
 class PlayableBagMultiplexer {
  public:
-  PlayableBagMultiplexer();
+  PlayableBagMultiplexer(rclcpp::Node::SharedPtr node);
   void AddPlayableBag(PlayableBag playable_bag);
 
   // Returns the next message from the multiplexed (merge-sorted) message
   // stream, along with the bag id corresponding to the message, and whether
   // this was the last message in that bag.
-  std::tuple<rosbag::MessageInstance, int /* bag_id */,
+  std::tuple<rosbag2_storage::SerializedBagMessage, int /* bag_id */,
              bool /* is_last_message_in_bag */>
   GetNextMessage();
 
@@ -98,9 +98,9 @@ class PlayableBagMultiplexer {
     };
   };
 
-  ros::NodeHandle pnh_;
+  rclcpp::Node::SharedPtr node_;
   // Publishes information about the bag-file(s) processing and its progress
-  ros::Publisher bag_progress_pub_;
+  rclcpp::Publisher<cartographer_ros_msgs::msg::BagfileProgress>::SharedPtr bag_progress_pub_;
   // Map between bagfile id and the last time when its progress was published
   std::map<int, rclcpp::Time> bag_progress_time_map_;
   // The time interval of publishing bag-file(s) processing in seconds

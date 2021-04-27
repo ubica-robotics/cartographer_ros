@@ -180,18 +180,18 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
   std::map<std::pair<int /* bag_index */, std::string>,
            cartographer::mapping::TrajectoryBuilderInterface::SensorId>
       bag_topic_to_sensor_id;
-  PlayableBagMultiplexer playable_bag_multiplexer;
+  PlayableBagMultiplexer playable_bag_multiplexer(cartographer_offline_node);
   for (size_t current_bag_index = 0; current_bag_index < bag_filenames.size();
        ++current_bag_index) {
     const std::string& bag_filename = bag_filenames.at(current_bag_index);
-    if (!::ros::ok()) {
+    if (!rclcpp::ok()) {
       return;
     }
     for (const auto& expected_sensor_id :
          bag_expected_sensor_ids.at(current_bag_index)) {
       const auto bag_resolved_topic = std::make_pair(
           static_cast<int>(current_bag_index),
-          node.node_handle()->resolveName(expected_sensor_id.id));
+          std::string(cartographer_offline_node->get_namespace()) + "/" + expected_sensor_id.id);
       if (bag_topic_to_sensor_id.count(bag_resolved_topic) != 0) {
         LOG(ERROR) << "Sensor " << expected_sensor_id.id << " of bag "
                    << current_bag_index << " resolves to topic "
@@ -209,11 +209,13 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
         // When a message is retrieved by GetNextMessage() further below,
         // we will have already inserted further 'kDelay' seconds worth of
         // transforms into 'tf_buffer' via this lambda.
-        [&tf_publisher, tf_buffer](const rosbag::MessageInstance& msg) {
-          if (msg.isType<tf2_msgs::TFMessage>()) {
+        [&tf_publisher, tf_buffer](std::shared_ptr<rosbag2_storage::SerializedBagMessage> msg) {
+          if (msg->topic_name  == "tf" || msg->topic_name  == "tf_static") {
             if (FLAGS_use_bag_transforms) {
-              const auto tf_message = msg.instantiate<tf2_msgs::TFMessage>();
-              tf_publisher.publish(tf_message);
+              rclcpp::Serialization<tf2_msgs::msg::TFMessage> serialization;
+              tf2_msgs::msg::TFMessage tf_message;
+              const auto tf_message = serialization.deserialize_message(msg);
+              tf_publisher->publish(tf_message);
 
               for (const auto& transform : tf_message->transforms) {
                 try {
