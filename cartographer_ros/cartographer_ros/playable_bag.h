@@ -58,6 +58,7 @@ class PlayableBag {
   void AdvanceUntilMessageAvailable();
 
   std::unique_ptr<rosbag2_cpp::Reader> bag_reader_;
+  rosbag2_storage::BagMetadata bag_metadata;
   bool finished_;
   const int bag_id_;
   const std::string bag_filename_;
@@ -69,48 +70,48 @@ class PlayableBag {
   std::set<std::string> topics_;
 };
 
-//class PlayableBagMultiplexer {
-// public:
-//  PlayableBagMultiplexer();
-//  void AddPlayableBag(PlayableBag playable_bag);
+class PlayableBagMultiplexer {
+ public:
+  PlayableBagMultiplexer();
+  void AddPlayableBag(PlayableBag playable_bag);
 
-//  // Returns the next message from the multiplexed (merge-sorted) message
-//  // stream, along with the bag id corresponding to the message, and whether
-//  // this was the last message in that bag.
-//  std::tuple<rosbag::MessageInstance, int /* bag_id */,
-//             bool /* is_last_message_in_bag */>
-//  GetNextMessage();
+  // Returns the next message from the multiplexed (merge-sorted) message
+  // stream, along with the bag id corresponding to the message, and whether
+  // this was the last message in that bag.
+  std::tuple<rosbag::MessageInstance, int /* bag_id */,
+             bool /* is_last_message_in_bag */>
+  GetNextMessage();
 
-//  bool IsMessageAvailable() const;
-//  rclcpp::Time PeekMessageTime() const;
+  bool IsMessageAvailable() const;
+  rclcpp::Time PeekMessageTime() const;
 
-//  std::set<std::string> topics() const { return topics_; }
+  std::set<std::string> topics() const { return topics_; }
 
-// private:
-//  struct BagMessageItem {
-//    rclcpp::Time message_timestamp;
-//    int bag_index;
-//    struct TimestampIsGreater {
-//      bool operator()(const BagMessageItem& l, const BagMessageItem& r) {
-//        return l.message_timestamp > r.message_timestamp;
-//      }
-//    };
-//  };
+ private:
+  struct BagMessageItem {
+    rclcpp::Time message_timestamp;
+    int bag_index;
+    struct TimestampIsGreater {
+      bool operator()(const BagMessageItem& l, const BagMessageItem& r) {
+        return l.message_timestamp > r.message_timestamp;
+      }
+    };
+  };
 
-//  ros::NodeHandle pnh_;
-//  // Publishes information about the bag-file(s) processing and its progress
-//  ros::Publisher bag_progress_pub_;
-//  // Map between bagfile id and the last time when its progress was published
-//  std::map<int, rclcpp::Time> bag_progress_time_map_;
-//  // The time interval of publishing bag-file(s) processing in seconds
-//  double progress_pub_interval_;
+  ros::NodeHandle pnh_;
+  // Publishes information about the bag-file(s) processing and its progress
+  ros::Publisher bag_progress_pub_;
+  // Map between bagfile id and the last time when its progress was published
+  std::map<int, rclcpp::Time> bag_progress_time_map_;
+  // The time interval of publishing bag-file(s) processing in seconds
+  double progress_pub_interval_;
 
-//  std::vector<PlayableBag> playable_bags_;
-//  std::priority_queue<BagMessageItem, std::vector<BagMessageItem>,
-//                      BagMessageItem::TimestampIsGreater>
-//      next_message_queue_;
-//  std::set<std::string> topics_;
-//};
+  std::vector<PlayableBag> playable_bags_;
+  std::priority_queue<BagMessageItem, std::vector<BagMessageItem>,
+                      BagMessageItem::TimestampIsGreater>
+      next_message_queue_;
+  std::set<std::string> topics_;
+};
 
 }  // namespace cartographer_ros
 
