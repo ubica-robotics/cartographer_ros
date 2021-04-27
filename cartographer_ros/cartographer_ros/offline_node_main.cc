@@ -21,10 +21,11 @@
 #include <rclcpp/rclcpp.hpp>
 
 int main(int argc, char** argv) {
-  google::InitGoogleLogging(argv[0]);
-  google::ParseCommandLineFlags(&argc, &argv, true);
-
   rclcpp::init(argc, argv);
+
+  google::AllowCommandLineReparsing();
+  google::InitGoogleLogging(argv[0]);
+  google::ParseCommandLineFlags(&argc, &argv, false);
 
   cartographer_ros::ScopedRosLogSink ros_log_sink;
 

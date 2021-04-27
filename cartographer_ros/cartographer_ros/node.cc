@@ -213,7 +213,7 @@ bool Node::handleTrajectoryQuery(
 
 void Node::PublishSubmapList() {
   absl::MutexLock lock(&mutex_);
-  submap_list_publisher_->publish(map_builder_bridge_->GetSubmapList());
+  submap_list_publisher_->publish(map_builder_bridge_->GetSubmapList(this->now()));
 }
 
 void Node::AddExtrapolator(const int trajectory_id,
@@ -281,7 +281,7 @@ void Node::PublishLocalTrajectoryData() {
     // time instead. Since tf knows how to interpolate, providing newer
     // information is better.
     const ::cartographer::common::Time now = std::max(
-        FromRos(rclcpp::Clock().now()), extrapolator.GetLastExtrapolatedTime());
+        FromRos(this->now()), extrapolator.GetLastExtrapolatedTime());
     stamped_transform.header.stamp =
         node_options_.use_pose_extrapolator
             ? ToRos(now)
@@ -355,7 +355,7 @@ void Node::PublishTrajectoryNodeList() {
   if (trajectory_node_list_publisher_->get_subscription_count() > 0) {
     absl::MutexLock lock(&mutex_);
     trajectory_node_list_publisher_->publish(
-        map_builder_bridge_->GetTrajectoryNodeList());
+        map_builder_bridge_->GetTrajectoryNodeList(this->now()));
   }
 }
 
@@ -363,14 +363,14 @@ void Node::PublishLandmarkPosesList() {
   if (landmark_poses_list_publisher_->get_subscription_count() > 0) {
     absl::MutexLock lock(&mutex_);
     landmark_poses_list_publisher_->publish(
-        map_builder_bridge_->GetLandmarkPosesList());
+        map_builder_bridge_->GetLandmarkPosesList(this->now()));
   }
 }
 
 void Node::PublishConstraintList() {
   if (constraint_list_publisher_->get_subscription_count() > 0) {
     absl::MutexLock lock(&mutex_);
-    constraint_list_publisher_->publish(map_builder_bridge_->GetConstraintList());
+    constraint_list_publisher_->publish(map_builder_bridge_->GetConstraintList(this->now()));
   }
 }
 
@@ -678,7 +678,7 @@ bool Node::handleGetTrajectoryStates(
       ::cartographer::mapping::PoseGraphInterface::TrajectoryState;
   absl::MutexLock lock(&mutex_);
   response->status.code = ::cartographer_ros_msgs::msg::StatusCode::OK;
-  response->trajectory_states.header.stamp = rclcpp::Clock().now();
+  response->trajectory_states.header.stamp = this->now();
   for (const auto& entry : map_builder_bridge_->GetTrajectoryStates()) {
     response->trajectory_states.trajectory_id.push_back(entry.first);
     switch (entry.second) {
@@ -732,7 +732,7 @@ bool Node::handleReadMetrics(
     const cartographer_ros_msgs::srv::ReadMetrics::Request::SharedPtr request,
     cartographer_ros_msgs::srv::ReadMetrics::Response::SharedPtr response) {
   absl::MutexLock lock(&mutex_);
-  response->timestamp = rclcpp::Clock().now();
+  response->timestamp = this->now();
   if (!metrics_registry_) {
     response->status.code = cartographer_ros_msgs::msg::StatusCode::UNAVAILABLE;
     response->status.message = "Collection of runtime metrics is not activated.";

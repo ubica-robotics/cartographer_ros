@@ -35,7 +35,8 @@ namespace cartographer_ros {
 std::unique_ptr<::cartographer::io::SubmapTextures> FetchSubmapTextures(
     const ::cartographer::mapping::SubmapId& submap_id,
     rclcpp::Client<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client,
-    rclcpp::Node::SharedPtr node);
+    rclcpp::executors::SingleThreadedExecutor::SharedPtr callback_group_executor,
+    const std::chrono::milliseconds timeout);
 
 }  // namespace cartographer_ros
 

@@ -28,14 +28,15 @@ namespace cartographer_ros {
 std::unique_ptr<::cartographer::io::SubmapTextures> FetchSubmapTextures(
     const ::cartographer::mapping::SubmapId& submap_id,
     rclcpp::Client<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client,
-    rclcpp::Node::SharedPtr node)
+    rclcpp::executors::SingleThreadedExecutor::SharedPtr callback_group_executor,
+    const std::chrono::milliseconds timeout)
 {
   auto request = std::make_shared<cartographer_ros_msgs::srv::SubmapQuery::Request>();
   request->trajectory_id = submap_id.trajectory_id;
   request->submap_index = submap_id.submap_index;
   auto future_result = client->async_send_request(request);
 
-  if (rclcpp::spin_until_future_complete(node, future_result) !=
+  if (callback_group_executor->spin_until_future_complete(future_result, timeout) !=
     rclcpp::FutureReturnCode::SUCCESS)
   {
     return nullptr;

@@ -40,6 +40,7 @@ std::unique_ptr<::cartographer::transform::Rigid3d> TfBridge::LookupToTracking(
                               timeout)
             .header.stamp;
     const rclcpp::Time requested_time = ToRos(time);
+
     if (latest_tf_time >= requested_time) {
       // We already have newer data, so we do not wait. Otherwise, we would wait
       // for the full 'timeout' even if we ask for data that is too old.

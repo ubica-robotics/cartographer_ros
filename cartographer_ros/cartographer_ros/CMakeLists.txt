@@ -19,11 +19,28 @@
 #    ros_map_writing_points_processor.cc
 #)
 
+#install(TARGETS cartographer_assets_writer
+#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+#)
+
+
+
 google_binary(cartographer_node
   SRCS
     node_main.cc
 )
 
+google_binary(cartographer_occupancy_grid_node
+  SRCS
+    occupancy_grid_node_main.cc
+)
+
+install(TARGETS
+  cartographer_node
+  cartographer_occupancy_grid_node
+  DESTINATION lib/${PROJECT_NAME})
 
 
 #google_binary(cartographer_offline_node
@@ -37,15 +54,7 @@ google_binary(cartographer_node
 #  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 #)
 
-google_binary(cartographer_occupancy_grid_node
-  SRCS
-    occupancy_grid_node_main.cc
-)
 
-install(TARGETS
-  cartographer_node
-  cartographer_occupancy_grid_node
-  DESTINATION lib/${PROJECT_NAME})
 
 #install(TARGETS cartographer_occupancy_grid_node
 #  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
