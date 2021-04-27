@@ -91,10 +91,12 @@ Node::Node(
     const NodeOptions& node_options,
     std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
     std::shared_ptr<tf2_ros::Buffer> tf_buffer,
+    rclcpp::Node::SharedPtr node,
     const bool collect_metrics)
-    : rclcpp::Node("cartographer_node"), node_options_(node_options)
+    : node_options_(node_options)
 {
-  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this) ;
+  node_ = node;
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_) ;
   map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), tf_buffer.get()));
 
   absl::MutexLock lock(&mutex_);
@@ -104,80 +106,80 @@ Node::Node(
   }
 
   submap_list_publisher_ =
-      this->create_publisher<::cartographer_ros_msgs::msg::SubmapList>(
+      node_->create_publisher<::cartographer_ros_msgs::msg::SubmapList>(
           kSubmapListTopic, 10);
   trajectory_node_list_publisher_ =
-      this->create_publisher<::visualization_msgs::msg::MarkerArray>(
+      node_->create_publisher<::visualization_msgs::msg::MarkerArray>(
           kTrajectoryNodeListTopic, 10);
   landmark_poses_list_publisher_ =
-      this->create_publisher<::visualization_msgs::msg::MarkerArray>(
+      node_->create_publisher<::visualization_msgs::msg::MarkerArray>(
           kLandmarkPosesListTopic, 10);
   constraint_list_publisher_ =
-      this->create_publisher<::visualization_msgs::msg::MarkerArray>(
+      node_->create_publisher<::visualization_msgs::msg::MarkerArray>(
           kConstraintListTopic, 10);
   if (node_options_.publish_tracked_pose) {
     tracked_pose_publisher_ =
-        this->create_publisher<::geometry_msgs::msg::PoseStamped>(
+        node_->create_publisher<::geometry_msgs::msg::PoseStamped>(
             kTrackedPoseTopic, 10);
   }
 
   scan_matched_point_cloud_publisher_ =
-      this->create_publisher<sensor_msgs::msg::PointCloud2>(
+      node_->create_publisher<sensor_msgs::msg::PointCloud2>(
         kScanMatchedPointCloudTopic, 10);
 
-  submap_query_server_ = this->create_service<cartographer_ros_msgs::srv::SubmapQuery>(
+  submap_query_server_ = node_->create_service<cartographer_ros_msgs::srv::SubmapQuery>(
       kSubmapQueryServiceName,
       std::bind(
           &Node::handleSubmapQuery, this, std::placeholders::_1, std::placeholders::_2));
-  trajectory_query_server = this->create_service<cartographer_ros_msgs::srv::TrajectoryQuery>(
+  trajectory_query_server = node_->create_service<cartographer_ros_msgs::srv::TrajectoryQuery>(
       kTrajectoryQueryServiceName,
       std::bind(
           &Node::handleTrajectoryQuery, this, std::placeholders::_1, std::placeholders::_2));
-  start_trajectory_server_ = this->create_service<cartographer_ros_msgs::srv::StartTrajectory>(
+  start_trajectory_server_ = node_->create_service<cartographer_ros_msgs::srv::StartTrajectory>(
       kStartTrajectoryServiceName,
       std::bind(
           &Node::handleStartTrajectory, this, std::placeholders::_1, std::placeholders::_2));
-  finish_trajectory_server_ = this->create_service<cartographer_ros_msgs::srv::FinishTrajectory>(
+  finish_trajectory_server_ = node_->create_service<cartographer_ros_msgs::srv::FinishTrajectory>(
       kFinishTrajectoryServiceName,
       std::bind(
           &Node::handleFinishTrajectory, this, std::placeholders::_1, std::placeholders::_2));
-  write_state_server_ = this->create_service<cartographer_ros_msgs::srv::WriteState>(
+  write_state_server_ = node_->create_service<cartographer_ros_msgs::srv::WriteState>(
       kWriteStateServiceName,
       std::bind(
           &Node::handleWriteState, this, std::placeholders::_1, std::placeholders::_2));
-  get_trajectory_states_server_ = this->create_service<cartographer_ros_msgs::srv::GetTrajectoryStates>(
+  get_trajectory_states_server_ = node_->create_service<cartographer_ros_msgs::srv::GetTrajectoryStates>(
       kGetTrajectoryStatesServiceName,
       std::bind(
           &Node::handleGetTrajectoryStates, this, std::placeholders::_1, std::placeholders::_2));
-  read_metrics_server_ = this->create_service<cartographer_ros_msgs::srv::ReadMetrics>(
+  read_metrics_server_ = node_->create_service<cartographer_ros_msgs::srv::ReadMetrics>(
       kReadMetricsServiceName,
       std::bind(
           &Node::handleReadMetrics, this, std::placeholders::_1, std::placeholders::_2));
 
 
-  submap_list_timer_ = this->create_wall_timer(
+  submap_list_timer_ = node_->create_wall_timer(
     std::chrono::milliseconds(int(node_options_.submap_publish_period_sec * 1000)),
     [this]() {
       PublishSubmapList();
     });
   if (node_options_.pose_publish_period_sec > 0) {
-    local_trajectory_data_timer_ = this->create_wall_timer(
+    local_trajectory_data_timer_ = node_->create_wall_timer(
       std::chrono::milliseconds(int(node_options_.pose_publish_period_sec * 1000)),
       [this]() {
         PublishLocalTrajectoryData();
       });
   }
-  trajectory_node_list_timer_ = this->create_wall_timer(
+  trajectory_node_list_timer_ = node_->create_wall_timer(
     std::chrono::milliseconds(int(node_options_.trajectory_publish_period_sec * 1000)),
     [this]() {
       PublishTrajectoryNodeList();
     });
-  landmark_pose_list_timer_ = this->create_wall_timer(
+  landmark_pose_list_timer_ = node_->create_wall_timer(
     std::chrono::milliseconds(int(node_options_.trajectory_publish_period_sec * 1000)),
     [this]() {
       PublishLandmarkPosesList();
     });
-  constrain_list_timer_ = this->create_wall_timer(
+  constrain_list_timer_ = node_->create_wall_timer(
     std::chrono::milliseconds(int(kConstraintPublishPeriodSec * 1000)),
     [this]() {
       PublishConstraintList();
@@ -213,7 +215,7 @@ bool Node::handleTrajectoryQuery(
 
 void Node::PublishSubmapList() {
   absl::MutexLock lock(&mutex_);
-  submap_list_publisher_->publish(map_builder_bridge_->GetSubmapList(this->now()));
+  submap_list_publisher_->publish(map_builder_bridge_->GetSubmapList(node_->now()));
 }
 
 void Node::AddExtrapolator(const int trajectory_id,
@@ -281,7 +283,7 @@ void Node::PublishLocalTrajectoryData() {
     // time instead. Since tf knows how to interpolate, providing newer
     // information is better.
     const ::cartographer::common::Time now = std::max(
-        FromRos(this->now()), extrapolator.GetLastExtrapolatedTime());
+        FromRos(node_->now()), extrapolator.GetLastExtrapolatedTime());
     stamped_transform.header.stamp =
         node_options_.use_pose_extrapolator
             ? ToRos(now)
@@ -355,7 +357,7 @@ void Node::PublishTrajectoryNodeList() {
   if (trajectory_node_list_publisher_->get_subscription_count() > 0) {
     absl::MutexLock lock(&mutex_);
     trajectory_node_list_publisher_->publish(
-        map_builder_bridge_->GetTrajectoryNodeList(this->now()));
+        map_builder_bridge_->GetTrajectoryNodeList(node_->now()));
   }
 }
 
@@ -363,14 +365,14 @@ void Node::PublishLandmarkPosesList() {
   if (landmark_poses_list_publisher_->get_subscription_count() > 0) {
     absl::MutexLock lock(&mutex_);
     landmark_poses_list_publisher_->publish(
-        map_builder_bridge_->GetLandmarkPosesList(this->now()));
+        map_builder_bridge_->GetLandmarkPosesList(node_->now()));
   }
 }
 
 void Node::PublishConstraintList() {
   if (constraint_list_publisher_->get_subscription_count() > 0) {
     absl::MutexLock lock(&mutex_);
-    constraint_list_publisher_->publish(map_builder_bridge_->GetConstraintList(this->now()));
+    constraint_list_publisher_->publish(map_builder_bridge_->GetConstraintList(node_->now()));
   }
 }
 
@@ -424,7 +426,7 @@ int Node::AddTrajectory(const TrajectoryOptions& options) {
   AddExtrapolator(trajectory_id, options);
   AddSensorSamplers(trajectory_id, options);
   LaunchSubscribers(options, trajectory_id);
-  maybe_warn_about_topic_mismatch_timer_ = this->create_wall_timer(
+  maybe_warn_about_topic_mismatch_timer_ = node_->create_wall_timer(
     std::chrono::milliseconds(int(kTopicMismatchCheckDelaySec * 1000)),
     [this]() {
       MaybeWarnAboutTopicMismatch();
@@ -441,21 +443,21 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
        ComputeRepeatedTopicNames(kLaserScanTopic, options.num_laser_scans)) {
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<sensor_msgs::msg::LaserScan>(
-             &Node::HandleLaserScanMessage, trajectory_id, topic, shared_from_this(), this),
+             &Node::HandleLaserScanMessage, trajectory_id, topic, node_, this),
          topic});
   }
   for (const std::string& topic : ComputeRepeatedTopicNames(
            kMultiEchoLaserScanTopic, options.num_multi_echo_laser_scans)) {
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<sensor_msgs::msg::MultiEchoLaserScan>(
-             &Node::HandleMultiEchoLaserScanMessage, trajectory_id, topic, shared_from_this(), this),
+             &Node::HandleMultiEchoLaserScanMessage, trajectory_id, topic, node_, this),
          topic});
   }
   for (const std::string& topic :
        ComputeRepeatedTopicNames(kPointCloud2Topic, options.num_point_clouds)) {
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<sensor_msgs::msg::PointCloud2>(
-             &Node::HandlePointCloud2Message, trajectory_id, topic, shared_from_this(), this),
+             &Node::HandlePointCloud2Message, trajectory_id, topic, node_, this),
          topic});
   }
 
@@ -468,7 +470,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<sensor_msgs::msg::Imu>(&Node::HandleImuMessage,
                                                 trajectory_id, kImuTopic,
-                                                shared_from_this(), this),
+                                                node_, this),
          kImuTopic});
   }
 
@@ -476,21 +478,21 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<nav_msgs::msg::Odometry>(&Node::HandleOdometryMessage,
                                                   trajectory_id, kOdometryTopic,
-                                                  shared_from_this(), this),
+                                                  node_, this),
          kOdometryTopic});
   }
   if (options.use_nav_sat) {
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<sensor_msgs::msg::NavSatFix>(
              &Node::HandleNavSatFixMessage, trajectory_id, kNavSatFixTopic,
-             shared_from_this(), this),
+             node_, this),
          kNavSatFixTopic});
   }
   if (options.use_landmarks) {
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<cartographer_ros_msgs::msg::LandmarkList>(
              &Node::HandleLandmarkMessage, trajectory_id, kLandmarkTopic,
-             shared_from_this(), this),
+             node_, this),
          kLandmarkTopic});
   }
 }
@@ -678,7 +680,7 @@ bool Node::handleGetTrajectoryStates(
       ::cartographer::mapping::PoseGraphInterface::TrajectoryState;
   absl::MutexLock lock(&mutex_);
   response->status.code = ::cartographer_ros_msgs::msg::StatusCode::OK;
-  response->trajectory_states.header.stamp = this->now();
+  response->trajectory_states.header.stamp = node_->now();
   for (const auto& entry : map_builder_bridge_->GetTrajectoryStates()) {
     response->trajectory_states.trajectory_id.push_back(entry.first);
     switch (entry.second) {
@@ -732,7 +734,7 @@ bool Node::handleReadMetrics(
     const cartographer_ros_msgs::srv::ReadMetrics::Request::SharedPtr request,
     cartographer_ros_msgs::srv::ReadMetrics::Response::SharedPtr response) {
   absl::MutexLock lock(&mutex_);
-  response->timestamp = this->now();
+  response->timestamp = node_->now();
   if (!metrics_registry_) {
     response->status.code = cartographer_ros_msgs::msg::StatusCode::UNAVAILABLE;
     response->status.message = "Collection of runtime metrics is not activated.";

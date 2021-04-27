@@ -56,11 +56,12 @@
 namespace cartographer_ros {
 
 // Wires up ROS topics to SLAM.
-class Node : public rclcpp::Node {
+class Node {
  public:
   Node(const NodeOptions& node_options,
        std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
        std::shared_ptr<tf2_ros::Buffer> tf_buffer,
+       rclcpp::Node::SharedPtr node,
        bool collect_metrics);
   ~Node();
 
@@ -185,6 +186,7 @@ class Node : public rclcpp::Node {
   std::unique_ptr<cartographer_ros::metrics::FamilyFactory> metrics_registry_;
   std::shared_ptr<MapBuilderBridge> map_builder_bridge_ GUARDED_BY(mutex_);
 
+  rclcpp::Node::SharedPtr node_;
   ::rclcpp::Publisher<::cartographer_ros_msgs::msg::SubmapList>::SharedPtr submap_list_publisher_;
   ::rclcpp::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr trajectory_node_list_publisher_;
   ::rclcpp::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr landmark_poses_list_publisher_;

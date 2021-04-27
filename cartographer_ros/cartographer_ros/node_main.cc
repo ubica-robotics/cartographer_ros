@@ -48,11 +48,18 @@ namespace cartographer_ros {
 namespace {
 
 void Run() {
+  rclcpp::Node::SharedPtr cartographer_node = rclcpp::Node::make_shared("cartographer_node");
   constexpr double kTfBufferCacheTimeInSeconds = 10.;
+
   std::shared_ptr<tf2_ros::Buffer> tf_buffer =
-      std::make_shared<tf2_ros::Buffer>(tf2::durationFromSec(kTfBufferCacheTimeInSeconds));
+      std::make_shared<tf2_ros::Buffer>(
+        cartographer_node->get_clock(),
+        tf2::durationFromSec(kTfBufferCacheTimeInSeconds),
+        cartographer_node);
+
   std::shared_ptr<tf2_ros::TransformListener> tf_listener =
-      std::make_shared<tf2_ros::TransformListener>(tf_buffer);
+      std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+
   NodeOptions node_options;
   TrajectoryOptions trajectory_options;
   std::tie(node_options, trajectory_options) =
@@ -61,7 +68,7 @@ void Run() {
   auto map_builder =
     cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
   auto node = std::make_shared<cartographer_ros::Node>(
-    node_options, std::move(map_builder), tf_buffer,
+    node_options, std::move(map_builder), tf_buffer, cartographer_node,
     FLAGS_collect_metrics);
   if (!FLAGS_load_state_filename.empty()) {
     node->LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);
@@ -71,7 +78,7 @@ void Run() {
     node->StartTrajectoryWithDefaultTopics(trajectory_options);
   }
 
-  rclcpp::spin(node);
+  rclcpp::spin(cartographer_node);
 
   node->FinishAllTrajectories();
   node->RunFinalOptimization();
