@@ -97,21 +97,21 @@ class Node {
 
   // The following functions handle adding sensor data to a trajectory.
   void HandleOdometryMessage(int trajectory_id, const std::string& sensor_id,
-                             const nav_msgs::msg::Odometry::ConstPtr& msg);
+                             const nav_msgs::msg::Odometry::ConstSharedPtr& msg);
   void HandleNavSatFixMessage(int trajectory_id, const std::string& sensor_id,
-                              const sensor_msgs::msg::NavSatFix::ConstPtr& msg);
+                              const sensor_msgs::msg::NavSatFix::ConstSharedPtr& msg);
   void HandleLandmarkMessage(
       int trajectory_id, const std::string& sensor_id,
-      const cartographer_ros_msgs::msg::LandmarkList::ConstPtr& msg);
+      const cartographer_ros_msgs::msg::LandmarkList::ConstSharedPtr& msg);
   void HandleImuMessage(int trajectory_id, const std::string& sensor_id,
-                        const sensor_msgs::msg::Imu::ConstPtr& msg);
+                        const sensor_msgs::msg::Imu::ConstSharedPtr &msg);
   void HandleLaserScanMessage(int trajectory_id, const std::string& sensor_id,
-                              const sensor_msgs::msg::LaserScan::ConstPtr& msg);
+                              const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg);
   void HandleMultiEchoLaserScanMessage(
       int trajectory_id, const std::string& sensor_id,
-      const sensor_msgs::msg::MultiEchoLaserScan::ConstPtr& msg);
+      const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg);
   void HandlePointCloud2Message(int trajectory_id, const std::string& sensor_id,
-                                const sensor_msgs::msg::PointCloud2::ConstPtr& msg);
+                                const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
 
   // Serializes the complete Node state.
   void SerializeState(const std::string& filename,

@@ -61,7 +61,7 @@ namespace {
 template <typename MessageType>
 ::rclcpp::SubscriptionBase::SharedPtr SubscribeWithHandler(
     void (Node::*handler)(int, const std::string&,
-                          const typename MessageType::ConstPtr&),
+                          const typename MessageType::ConstSharedPtr&),
     const int trajectory_id, const std::string& topic,
     ::rclcpp::Node::SharedPtr node_handle, Node* const node) {
   return node_handle->create_subscription<MessageType>(
@@ -785,7 +785,7 @@ void Node::RunFinalOptimization() {
 
 void Node::HandleOdometryMessage(const int trajectory_id,
                                  const std::string& sensor_id,
-                                 const nav_msgs::msg::Odometry::ConstPtr& msg) {
+                                 const nav_msgs::msg::Odometry::ConstSharedPtr& msg) {
   absl::MutexLock lock(&mutex_);
   if (!sensor_samplers_.at(trajectory_id).odometry_sampler.Pulse()) {
     return;
@@ -800,7 +800,7 @@ void Node::HandleOdometryMessage(const int trajectory_id,
 
 void Node::HandleNavSatFixMessage(const int trajectory_id,
                                   const std::string& sensor_id,
-                                  const sensor_msgs::msg::NavSatFix::ConstPtr& msg) {
+                                  const sensor_msgs::msg::NavSatFix::ConstSharedPtr& msg) {
   absl::MutexLock lock(&mutex_);
   if (!sensor_samplers_.at(trajectory_id).fixed_frame_pose_sampler.Pulse()) {
     return;
@@ -811,7 +811,7 @@ void Node::HandleNavSatFixMessage(const int trajectory_id,
 
 void Node::HandleLandmarkMessage(
     const int trajectory_id, const std::string& sensor_id,
-    const cartographer_ros_msgs::msg::LandmarkList::ConstPtr& msg) {
+    const cartographer_ros_msgs::msg::LandmarkList::ConstSharedPtr& msg) {
   absl::MutexLock lock(&mutex_);
   if (!sensor_samplers_.at(trajectory_id).landmark_sampler.Pulse()) {
     return;
@@ -822,7 +822,7 @@ void Node::HandleLandmarkMessage(
 
 void Node::HandleImuMessage(const int trajectory_id,
                             const std::string& sensor_id,
-                            const sensor_msgs::msg::Imu::ConstPtr& msg) {
+                            const sensor_msgs::msg::Imu::ConstSharedPtr& msg) {
   absl::MutexLock lock(&mutex_);
   if (!sensor_samplers_.at(trajectory_id).imu_sampler.Pulse()) {
     return;
@@ -837,7 +837,7 @@ void Node::HandleImuMessage(const int trajectory_id,
 
 void Node::HandleLaserScanMessage(const int trajectory_id,
                                   const std::string& sensor_id,
-                                  const sensor_msgs::msg::LaserScan::ConstPtr& msg) {
+                                  const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg) {
   absl::MutexLock lock(&mutex_);
   if (!sensor_samplers_.at(trajectory_id).rangefinder_sampler.Pulse()) {
     return;
@@ -848,7 +848,7 @@ void Node::HandleLaserScanMessage(const int trajectory_id,
 
 void Node::HandleMultiEchoLaserScanMessage(
     const int trajectory_id, const std::string& sensor_id,
-    const sensor_msgs::msg::MultiEchoLaserScan::ConstPtr& msg) {
+    const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg) {
   absl::MutexLock lock(&mutex_);
   if (!sensor_samplers_.at(trajectory_id).rangefinder_sampler.Pulse()) {
     return;
@@ -859,7 +859,7 @@ void Node::HandleMultiEchoLaserScanMessage(
 
 void Node::HandlePointCloud2Message(
     const int trajectory_id, const std::string& sensor_id,
-    const sensor_msgs::msg::PointCloud2::ConstPtr& msg) {
+    const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg) {
   absl::MutexLock lock(&mutex_);
   if (!sensor_samplers_.at(trajectory_id).rangefinder_sampler.Pulse()) {
     return;

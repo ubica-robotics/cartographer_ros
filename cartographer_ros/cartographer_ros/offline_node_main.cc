@@ -21,8 +21,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 int main(int argc, char** argv) {
-  rclcpp::Node::SharedPtr cartographer_offline_node =
-      rclcpp::Node::make_shared("cartographer_offline_node");
+  rclcpp::init(argc, argv);
 
   google::AllowCommandLineReparsing();
   google::InitGoogleLogging(argv[0]);
@@ -36,6 +35,8 @@ int main(int argc, char** argv) {
     return ::cartographer::mapping::CreateMapBuilder(map_builder_options);
   };
 
+  rclcpp::Node::SharedPtr cartographer_offline_node =
+      rclcpp::Node::make_shared("cartographer_offline_node");
   cartographer_ros::RunOfflineNode(map_builder_factory, cartographer_offline_node);
 
   rclcpp::shutdown();

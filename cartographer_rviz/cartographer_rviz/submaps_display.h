@@ -83,7 +83,7 @@ class SubmapsDisplay
   void onInitialize() override;
   void reset() override;
   void processMessage(
-      const ::cartographer_ros_msgs::SubmapList::ConstPtr& msg) override;
+      const ::cartographer_ros_msgs::SubmapList::ConstSharedPtr& msg) override;
   void update(float wall_dt, float ros_dt) override;
 
   ::tf2_ros::Buffer tf_buffer_;

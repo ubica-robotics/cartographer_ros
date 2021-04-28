@@ -65,7 +65,7 @@ class Node : public rclcpp::Node
   Node& operator=(const Node&) = delete;
 
  private:
-  void HandleSubmapList(const cartographer_ros_msgs::msg::SubmapList::ConstPtr& msg);
+  void HandleSubmapList(const cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr& msg);
   void DrawAndPublish();
 
   const double resolution_;

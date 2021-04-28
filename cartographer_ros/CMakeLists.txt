@@ -18,10 +18,8 @@ project(cartographer_ros)
 
 find_package(ament_cmake REQUIRED)
 
-# Default to C++14
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
-endif()
+# Default to C++17
+set(CMAKE_CXX_STANDARD 17)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra)
@@ -32,7 +30,6 @@ include("${CARTOGRAPHER_CMAKE_DIR}/functions.cmake")
 set(BUILD_SHARED_LIBS OFF)
 option(BUILD_GRPC "build features that require Cartographer gRPC support" false)
 
-# ???
 google_initialize_cartographer_project()
 
 add_compile_options(-g)
@@ -54,9 +51,11 @@ find_package(rosbag2_compression REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 find_package(rosbag2_storage REQUIRED)
 
+find_package(absl REQUIRED)
 find_package(LuaGoogle REQUIRED)
 find_package(PCL REQUIRED COMPONENTS common)
 find_package(Eigen3 REQUIRED)
+find_package(urdf REQUIRED)
 find_package(urdfdom_headers REQUIRED)
 
 if(DEFINED urdfdom_headers_VERSION)
@@ -70,23 +69,6 @@ include_directories(
   include
   "."
 )
-
-#ros2 1.0
-#set(ALL_SRCS
-#  "cartographer_ros/map_builder_bridge.cc"
-#  "cartographer_ros/msg_conversion.cc"
-#  "cartographer_ros/node.h"
-#  "cartographer_ros/node.cc"
-#  "cartographer_ros/node_constants.cc"
-#  "cartographer_ros/node_options.cc"
-#  "cartographer_ros/ros_log_sink.cc"
-#  "cartographer_ros/sensor_bridge.cc"
-#  "cartographer_ros/tf_bridge.cc"
-#  "cartographer_ros/time_conversion.cc"
-#  "cartographer_ros/trajectory_options.cc"
-#  "cartographer_ros/submap.cc"
-#)
-
 
 file(GLOB_RECURSE ALL_SRCS "cartographer_ros/*.cc" "cartographer_ros/*.h")
 file(GLOB_RECURSE ALL_TESTS "cartographer_ros/*_test.cc")
@@ -118,6 +100,8 @@ ament_target_dependencies(${PROJECT_NAME} PUBLIC
   rosbag2_compression
   rosbag2_cpp
   rosbag2_storage
+  urdf
+  urdfdom_headers
 )
 add_subdirectory("cartographer_ros")
 target_link_libraries(${PROJECT_NAME} PUBLIC cartographer)
@@ -151,7 +135,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
 target_link_libraries(${PROJECT_NAME} PUBLIC ${Boost_LIBRARIES})
 
 ## URDFDOM in ros2 1.0
-#target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${urdfdom_headers_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${urdfdom_headers_INCLUDE_DIRS})
 
 ## Catkin
 #target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})

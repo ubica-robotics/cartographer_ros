@@ -37,10 +37,15 @@ PlayableBag::PlayableBag(
       buffer_delay_(buffer_delay),
       filtering_early_message_handler_(
           std::move(filtering_early_message_handler)) {
+  LOG(WARNING) << "Opening bag: " << bag_filename;
   bag_reader_->open(bag_filename);
   bag_metadata = bag_reader_->get_metadata();
   duration_in_seconds_ = bag_metadata.duration.count()/1e9;
-  //AdvanceUntilMessageAvailable();
+  LOG(WARNING) << "duration_in_seconds_: " << duration_in_seconds_;
+  LOG(WARNING) << "message_count: " << bag_metadata.message_count;
+  LOG(WARNING) << "compression_mode: " << bag_metadata.compression_mode;
+  LOG(WARNING) << "compression_format: " << bag_metadata.compression_format;
+  AdvanceUntilMessageAvailable();
   for (auto topic_info : bag_metadata.topics_with_message_count) {
     topics_.insert(topic_info.topic_metadata.name);
   }

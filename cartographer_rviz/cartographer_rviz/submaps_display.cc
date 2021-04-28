@@ -114,7 +114,7 @@ void SubmapsDisplay::reset() {
 }
 
 void SubmapsDisplay::processMessage(
-    const ::cartographer_ros_msgs::SubmapList::ConstPtr& msg) {
+    const ::cartographer_ros_msgs::SubmapList::ConstSharedPtr& msg) {
   absl::MutexLock locker(&mutex_);
   map_frame_ = absl::make_unique<std::string>(msg->header.frame_id);
   // In case Cartographer node is relaunched, destroy trajectories from the
