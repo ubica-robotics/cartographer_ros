@@ -140,7 +140,7 @@ void PlayableBagMultiplexer::AddPlayableBag(PlayableBag playable_bag) {
   next_message_queue_.emplace(
       BagMessageItem{playable_bags_.back().PeekMessageTime(),
                      static_cast<int>(playable_bags_.size() - 1)});
-  bag_progress_time_map_[playable_bag.bag_id()] = rclcpp::Clock().now();
+  bag_progress_time_map_[playable_bag.bag_id()] = node_->now();
 }
 
 bool PlayableBagMultiplexer::IsMessageAvailable() const {
@@ -163,7 +163,7 @@ std::tuple<rosbag2_storage::SerializedBagMessage, int, bool> PlayableBagMultiple
       progress.processed_seconds = current_bag.duration_in_seconds();
     }
     bag_progress_pub_->publish(progress);
-    bag_progress_time_map_[current_bag.bag_id()] = rclcpp::Clock().now();
+    bag_progress_time_map_[current_bag.bag_id()] = node_->now();
   }
   CHECK_EQ(msg.time_stamp, next_message_queue_.top().message_timestamp.nanoseconds());
   next_message_queue_.pop();
