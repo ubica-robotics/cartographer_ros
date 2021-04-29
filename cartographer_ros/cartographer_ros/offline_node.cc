@@ -222,7 +222,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
         // When a message is retrieved by GetNextMessage() further below,
         // we will have already inserted further 'kDelay' seconds worth of
         // transforms into 'tf_buffer' via this lambda.
-        [&tf_publisher, tf_buffer](std::shared_ptr<rosbag2_storage::SerializedBagMessage> msg) {
+        [&tf_publisher, tf_buffer, cartographer_offline_node](std::shared_ptr<rosbag2_storage::SerializedBagMessage> msg) {
           // TODO: filter bag msg per type ? Planned rosbag2 evolution ?
           if (msg->topic_name  == kTfTopic || msg->topic_name  == kTfStaticTopic) {
             if (FLAGS_use_bag_transforms) {
@@ -232,12 +232,13 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
               try {
                 serializer.deserialize_message(&serialized_msg, &tf_message);
                 tf_publisher->publish(tf_message);
-                for (const auto& transform : tf_message.transforms) {
+                for (auto& transform : tf_message.transforms) {
                   try {
                     // We need to keep 'tf_buffer' small because it becomes very
                     // inefficient otherwise. We make sure that tf_messages are
                     // published before any data messages, so that tf lookups
                     // always work.
+                    transform.header.stamp = cartographer_offline_node->now();
                     tf_buffer->setTransform(transform, "unused_authority",
                                            msg->topic_name == kTfStaticTopic);
                   } catch (const tf2::TransformException& ex) {
