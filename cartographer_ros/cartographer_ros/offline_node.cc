@@ -93,8 +93,10 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
                     rclcpp::Node::SharedPtr cartographer_offline_node) {
   CHECK(!FLAGS_configuration_directory.empty())
       << "-configuration_directory is missing.";
+  LOG(WARNING) << "FLAGS_configuration_directory " << FLAGS_configuration_directory;
   CHECK(!FLAGS_configuration_basenames.empty())
       << "-configuration_basenames is missing.";
+  LOG(WARNING) << "FLAGS_configuration_basenames " << FLAGS_configuration_basenames;
   CHECK(!(FLAGS_bag_filenames.empty() && FLAGS_load_state_filename.empty()))
       << "-bag_filenames and -load_state_filename cannot both be unspecified.";
   std::vector<std::string> bag_filenames;
@@ -238,7 +240,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
                     // inefficient otherwise. We make sure that tf_messages are
                     // published before any data messages, so that tf lookups
                     // always work.
-                    transform.header.stamp = cartographer_offline_node->now();
+                    //transform.header.stamp = cartographer_offline_node->now();
                     tf_buffer->setTransform(transform, "unused_authority",
                                            msg->topic_name == kTfStaticTopic);
                   } catch (const tf2::TransformException& ex) {
@@ -338,88 +340,46 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
         msg.topic_name);
     auto it = bag_topic_to_sensor_id.find(bag_topic);
 
-    LOG(INFO) << "before if";
-
     if (it != bag_topic_to_sensor_id.end()) {
-      LOG(INFO) << "inside if";
-      LOG(WARNING) << "topic_type: " << topic_type;
       const std::string& sensor_id = it->second.id;
-      LOG(WARNING) << "sensor_id: " << sensor_id;
 
       rclcpp::SerializedMessage serialized_msg(*msg.serialized_data);
-      LOG(WARNING) << "topic: " << msg.topic_name;
-      // TODO: do not continue trying deserialize if message found
       if (topic_type == "sensor_msgs/msg/LaserScan") {
         sensor_msgs::msg::LaserScan::SharedPtr laser_scan_msg =
             std::make_shared<sensor_msgs::msg::LaserScan>();
-        try {
-          LOG(INFO) << "try deserialize scan";
-          laser_scan_serializer.deserialize_message(&serialized_msg, laser_scan_msg.get());
-          LOG(WARNING) << "scan derialized";
-          node.HandleLaserScanMessage(trajectory_id, sensor_id,
-                                       laser_scan_msg);
-        } catch (const rclcpp::exceptions::RCLError& rcl_error) {
-        }
+        laser_scan_serializer.deserialize_message(&serialized_msg, laser_scan_msg.get());
+        node.HandleLaserScanMessage(trajectory_id, sensor_id,
+                                     laser_scan_msg);
       } else if (topic_type == "sensor_msgs/msg/MultiEchoLaserScan") {
         sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr multi_echo_laser_scan_msg;
-        try {
-          LOG(INFO) << "try deserialize multiscan";
-          multi_echo_laser_scan_serializer.deserialize_message(&serialized_msg, &multi_echo_laser_scan_msg);
-          LOG(WARNING) << "multiscan";
-          node.HandleMultiEchoLaserScanMessage(trajectory_id, sensor_id,
-                                       multi_echo_laser_scan_msg);
-        } catch (const rclcpp::exceptions::RCLError& rcl_error) {
-        }
+        multi_echo_laser_scan_serializer.deserialize_message(&serialized_msg, &multi_echo_laser_scan_msg);
+        node.HandleMultiEchoLaserScanMessage(trajectory_id, sensor_id,
+                                     multi_echo_laser_scan_msg);
       } else if (topic_type == "sensor_msgs/msg/PointCloud2") {
         sensor_msgs::msg::PointCloud2::ConstSharedPtr pcl2_scan_msg;
-        try {
-          LOG(INFO) << "try deserialize pcl2";
-          pcl2_serializer.deserialize_message(&serialized_msg, &pcl2_scan_msg);
-          LOG(WARNING) << "pcl2";
-          node.HandlePointCloud2Message(trajectory_id, sensor_id,
-                                       pcl2_scan_msg);
-        } catch (const rclcpp::exceptions::RCLError& rcl_error) {
-        }
+        pcl2_serializer.deserialize_message(&serialized_msg, &pcl2_scan_msg);
+        node.HandlePointCloud2Message(trajectory_id, sensor_id,
+                                     pcl2_scan_msg);
       } else if (topic_type == "sensor_msgs/msg/Imu") {
         sensor_msgs::msg::Imu::ConstSharedPtr imu_scan_msg;
-        try {
-          LOG(INFO) << "try deserialize imu";
-          imu_serializer.deserialize_message(&serialized_msg, &imu_scan_msg);
-          LOG(WARNING) << "imu";
-          node.HandleImuMessage(trajectory_id, sensor_id,
-                                       imu_scan_msg);
-        } catch (const rclcpp::exceptions::RCLError& rcl_error) {
-        }
+        imu_serializer.deserialize_message(&serialized_msg, &imu_scan_msg);
+        node.HandleImuMessage(trajectory_id, sensor_id,
+                                     imu_scan_msg);
       } else if (topic_type == "nav_msgs/msg/Odometry") {
         nav_msgs::msg::Odometry::ConstSharedPtr odom_scan_msg;
-        try {
-          LOG(INFO) << "try deserialize odom";
           odom_serializer.deserialize_message(&serialized_msg, &odom_scan_msg);
-          LOG(WARNING) << "odom";
           node.HandleOdometryMessage(trajectory_id, sensor_id,
                                        odom_scan_msg);
-        } catch (const rclcpp::exceptions::RCLError& rcl_error) {
-        }
       } else if (topic_type == "sensor_msgs/msg/NavSatFix") {
         sensor_msgs::msg::NavSatFix::ConstSharedPtr nav_sat_fix_msg;
-        try {
-          LOG(INFO) << "try deserialize navsat";
-          nav_sat_fix_serializer.deserialize_message(&serialized_msg, &nav_sat_fix_msg);
-          LOG(WARNING) << "navsat";
-          node.HandleNavSatFixMessage(trajectory_id, sensor_id,
-                                       nav_sat_fix_msg);
-        } catch (const rclcpp::exceptions::RCLError& rcl_error) {
-        }
+        nav_sat_fix_serializer.deserialize_message(&serialized_msg, &nav_sat_fix_msg);
+        node.HandleNavSatFixMessage(trajectory_id, sensor_id,
+                                     nav_sat_fix_msg);
       } else if (topic_type == "cartographer_ros_msgs/msg/LandmarkList") {
         cartographer_ros_msgs::msg::LandmarkList::ConstSharedPtr landmark_list_msg;
-        try {
-          LOG(INFO) << "try deserialize landmark";
-          landmark_list_serializer.deserialize_message(&serialized_msg, &landmark_list_msg);
-          LOG(WARNING) << "landmark";
-          node.HandleLandmarkMessage(trajectory_id, sensor_id,
-                                       landmark_list_msg);
-        } catch (const rclcpp::exceptions::RCLError& rcl_error) {
-        }
+        landmark_list_serializer.deserialize_message(&serialized_msg, &landmark_list_msg);
+        node.HandleLandmarkMessage(trajectory_id, sensor_id,
+                                     landmark_list_msg);
       }
     }
     clock.clock = rclcpp::Time(msg.time_stamp);

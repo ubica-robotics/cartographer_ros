@@ -323,6 +323,8 @@ void Node::PublishLocalTrajectoryData() {
           stamped_transform.transform =
               ToGeometryMsgTransform(trajectory_data.local_to_map);
           stamped_transforms.push_back(stamped_transform);
+          LOG(WARNING) << "1 TransformBroadcaster frame_id: " << stamped_transform.header.frame_id
+                       << " child_frame_id: " << stamped_transform.child_frame_id;
 
           stamped_transform.header.frame_id =
               trajectory_data.trajectory_options.odom_frame;
@@ -332,6 +334,8 @@ void Node::PublishLocalTrajectoryData() {
               tracking_to_local * (*trajectory_data.published_to_tracking));
           stamped_transforms.push_back(stamped_transform);
 
+          LOG(WARNING) << "2 TransformBroadcaster frame_id: " << stamped_transform.header.frame_id
+                       << " child_frame_id: " << stamped_transform.child_frame_id;
           tf_broadcaster_->sendTransform(stamped_transforms);
         } else {
           stamped_transform.header.frame_id = node_options_.map_frame;
@@ -340,6 +344,8 @@ void Node::PublishLocalTrajectoryData() {
           stamped_transform.transform = ToGeometryMsgTransform(
               tracking_to_map * (*trajectory_data.published_to_tracking));
           tf_broadcaster_->sendTransform(stamped_transform);
+          LOG(WARNING) << "3 TransformBroadcaster frame_id: " << stamped_transform.header.frame_id
+                       << " child_frame_id: " << stamped_transform.child_frame_id;
         }
       }
       if (node_options_.publish_tracked_pose) {
