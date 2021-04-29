@@ -147,7 +147,7 @@ bool PlayableBagMultiplexer::IsMessageAvailable() const {
   return !next_message_queue_.empty();
 }
 
-std::tuple<rosbag2_storage::SerializedBagMessage, int, bool> PlayableBagMultiplexer::GetNextMessage() {
+std::tuple<rosbag2_storage::SerializedBagMessage, int, std::string, bool> PlayableBagMultiplexer::GetNextMessage() {
   CHECK(IsMessageAvailable());
   const int current_bag_index = next_message_queue_.top().bag_index;
   PlayableBag& current_bag = playable_bags_.at(current_bag_index);
@@ -171,7 +171,16 @@ std::tuple<rosbag2_storage::SerializedBagMessage, int, bool> PlayableBagMultiple
     next_message_queue_.emplace(
         BagMessageItem{current_bag.PeekMessageTime(), current_bag_index});
   }
-  return std::make_tuple(std::move(msg), current_bag.bag_id(),
+
+  std::string topic_type;
+  for (auto topic_info : current_bag.bag_metadata.topics_with_message_count) {
+    if (topic_info.topic_metadata.name == msg.topic_name){
+      topic_type = topic_info.topic_metadata.type;
+      break;
+    }
+  }
+
+  return std::make_tuple(std::move(msg), current_bag.bag_id(), topic_type,
                          !current_bag.IsMessageAvailable());
 }
 

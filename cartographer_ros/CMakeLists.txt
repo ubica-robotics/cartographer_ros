@@ -50,6 +50,8 @@ find_package(visualization_msgs REQUIRED)
 find_package(rosbag2_compression REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 find_package(rosbag2_storage REQUIRED)
+find_package(backward_ros REQUIRED)
+
 
 find_package(absl REQUIRED)
 find_package(LuaGoogle REQUIRED)
@@ -84,6 +86,7 @@ endif()
 
 add_library(${PROJECT_NAME} STATIC ${ALL_SRCS})
 ament_target_dependencies(${PROJECT_NAME} PUBLIC
+  backward_ros
   cartographer
   cartographer_ros_msgs
   geometry_msgs

@@ -52,13 +52,13 @@ class PlayableBag {
   std::set<std::string> topics() const { return topics_; }
   double duration_in_seconds() const { return duration_in_seconds_; }
   bool finished() const { return finished_; }
+  rosbag2_storage::BagMetadata bag_metadata;
 
  private:
   void AdvanceOneMessage();
   void AdvanceUntilMessageAvailable();
 
   std::unique_ptr<rosbag2_cpp::Reader> bag_reader_;
-  rosbag2_storage::BagMetadata bag_metadata;
   bool finished_;
   const int bag_id_;
   const std::string bag_filename_;
@@ -78,9 +78,7 @@ class PlayableBagMultiplexer {
   // Returns the next message from the multiplexed (merge-sorted) message
   // stream, along with the bag id corresponding to the message, and whether
   // this was the last message in that bag.
-  std::tuple<rosbag2_storage::SerializedBagMessage, int /* bag_id */,
-             bool /* is_last_message_in_bag */>
-  GetNextMessage();
+  std::tuple<rosbag2_storage::SerializedBagMessage, int, std::string, bool> GetNextMessage();
 
   bool IsMessageAvailable() const;
   rclcpp::Time PeekMessageTime() const;
