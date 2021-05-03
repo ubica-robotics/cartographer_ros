@@ -233,20 +233,19 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
               rclcpp::SerializedMessage serialized_msg(*msg->serialized_data);
               try {
                 serializer.deserialize_message(&serialized_msg, &tf_message);
-                tf_publisher->publish(tf_message);
                 for (auto& transform : tf_message.transforms) {
                   try {
                     // We need to keep 'tf_buffer' small because it becomes very
                     // inefficient otherwise. We make sure that tf_messages are
                     // published before any data messages, so that tf lookups
                     // always work.
-                    //transform.header.stamp = cartographer_offline_node->now();
                     tf_buffer->setTransform(transform, "unused_authority",
                                            msg->topic_name == kTfStaticTopic);
                   } catch (const tf2::TransformException& ex) {
                     LOG(WARNING) << ex.what();
                   }
                 }
+                tf_publisher->publish(tf_message);
               } catch (const rclcpp::exceptions::RCLError& rcl_error) {
                 return true;
               }

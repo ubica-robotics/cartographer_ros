@@ -32,9 +32,6 @@ option(BUILD_GRPC "build features that require Cartographer gRPC support" false)
 
 google_initialize_cartographer_project()
 
-add_compile_options(-g)
-
-# rosbag2 ?
 find_package(cartographer_ros_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -50,8 +47,7 @@ find_package(visualization_msgs REQUIRED)
 find_package(rosbag2_compression REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 find_package(rosbag2_storage REQUIRED)
-find_package(backward_ros REQUIRED)
-
+#find_package(backward_ros REQUIRED)
 
 find_package(absl REQUIRED)
 find_package(LuaGoogle REQUIRED)
@@ -86,7 +82,7 @@ endif()
 
 add_library(${PROJECT_NAME} STATIC ${ALL_SRCS})
 ament_target_dependencies(${PROJECT_NAME} PUBLIC
-  backward_ros
+ #backward_ros
   cartographer
   cartographer_ros_msgs
   geometry_msgs
@@ -139,11 +135,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${Boost_LIBRARIES})
 
 ## URDFDOM in ros2 1.0
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${urdfdom_headers_INCLUDE_DIRS})
-
-## Catkin
-#target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
-#target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES})
-#add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 
 # Add the binary directory first, so that port.h is included after it has
 # been generated.
