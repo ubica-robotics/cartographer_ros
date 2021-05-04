@@ -882,6 +882,7 @@ void Node::LoadState(const std::string& state_filename,
   map_builder_bridge_->LoadState(state_filename, load_frozen_state);
 }
 
+// TODO: find ROS equivalent to ros::master::getTopics
 void Node::MaybeWarnAboutTopicMismatch() {
 //  ::ros::master::V_TopicInfo ros_topics;
 //  ::ros::master::getTopics(ros_topics);

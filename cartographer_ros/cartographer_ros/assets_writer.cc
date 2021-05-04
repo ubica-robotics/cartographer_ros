@@ -40,7 +40,6 @@
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 #include "builtin_interfaces/msg/time.hpp"
-#include <rclcpp/rclcpp.hpp>
 #include <rosbag2_cpp/reader.hpp>
 #include <rosbag2_cpp/readers/sequential_reader.hpp>
 #include "tf2_eigen/tf2_eigen.h"
@@ -92,19 +91,19 @@ std::unique_ptr<carto::common::LuaParameterDictionary> LoadLuaDictionary(
 template <typename T>
 std::unique_ptr<carto::io::PointsBatch> HandleMessage(
     const T& message, const std::string& tracking_frame,
-    const tf2_ros::Buffer& tf_buffer,
+    const std::shared_ptr<tf2_ros::Buffer> tf_buffer,
     const carto::transform::TransformInterpolationBuffer&
         transform_interpolation_buffer) {
-  const carto::common::Time start_time = FromRos(message.header.stamp);
+  const carto::common::Time start_time = FromRos(message->header.stamp);
 
   auto points_batch = absl::make_unique<carto::io::PointsBatch>();
   points_batch->start_time = start_time;
-  points_batch->frame_id = message.header.frame_id;
+  points_batch->frame_id = message->header.frame_id;
 
   carto::sensor::PointCloudWithIntensities point_cloud;
   carto::common::Time point_cloud_time;
   std::tie(point_cloud, point_cloud_time) =
-      ToPointCloudWithIntensities(message);
+      ToPointCloudWithIntensities(*message);
   CHECK_EQ(point_cloud.intensities.size(), point_cloud.points.size());
 
   for (size_t i = 0; i < point_cloud.points.size(); ++i) {
@@ -117,8 +116,8 @@ std::unique_ptr<carto::io::PointsBatch> HandleMessage(
     const carto::transform::Rigid3d tracking_to_map =
         transform_interpolation_buffer.Lookup(time);
     const carto::transform::Rigid3d sensor_to_tracking =
-        ToRigid3d(tf_buffer.lookupTransform(
-            tracking_frame, message.header.frame_id, ToRos(time)));
+        ToRigid3d(tf_buffer->lookupTransform(
+            tracking_frame, message->header.frame_id, ToRos(time)));
     const carto::transform::Rigid3f sensor_to_map =
         (tracking_to_map * sensor_to_tracking).cast<float>();
     points_batch->points.push_back(
@@ -170,93 +169,118 @@ void AssetsWriter::Run(const std::string& configuration_directory,
                        const std::string& configuration_basename,
                        const std::string& urdf_filename,
                        const bool use_bag_transforms) {
-//  const auto lua_parameter_dictionary =
-//      LoadLuaDictionary(configuration_directory, configuration_basename);
+  const auto lua_parameter_dictionary =
+      LoadLuaDictionary(configuration_directory, configuration_basename);
 
-//  std::vector<std::unique_ptr<carto::io::PointsProcessor>> pipeline =
-//      point_pipeline_builder_->CreatePipeline(
-//          lua_parameter_dictionary->GetDictionary("pipeline").get());
-//  const std::string tracking_frame =
-//      lua_parameter_dictionary->GetString("tracking_frame");
+  std::vector<std::unique_ptr<carto::io::PointsProcessor>> pipeline =
+      point_pipeline_builder_->CreatePipeline(
+          lua_parameter_dictionary->GetDictionary("pipeline").get());
+  const std::string tracking_frame =
+      lua_parameter_dictionary->GetString("tracking_frame");
 
-//  do {
-//    for (size_t trajectory_id = 0; trajectory_id < bag_filenames_.size();
-//         ++trajectory_id) {
-//      const carto::mapping::proto::Trajectory& trajectory_proto =
-//          pose_graph_.trajectory(trajectory_id);
-//      const std::string& bag_filename = bag_filenames_[trajectory_id];
-//      LOG(INFO) << "Processing " << bag_filename << "...";
-//      if (trajectory_proto.node_size() == 0) {
-//        continue;
-//      }
-//      std::shared_ptr<tf2_ros::Buffer> tf_buffer;
-//      if (!urdf_filename.empty()) {
-//        ReadStaticTransformsFromUrdf(urdf_filename, tf_buffer);
-//      }
+  rclcpp::Clock::SharedPtr clock = std::make_shared<rclcpp::Clock>(RCL_SYSTEM_TIME);
+  do {
+    for (size_t trajectory_id = 0; trajectory_id < bag_filenames_.size();
+         ++trajectory_id) {
+      const carto::mapping::proto::Trajectory& trajectory_proto =
+          pose_graph_.trajectory(trajectory_id);
+      const std::string& bag_filename = bag_filenames_[trajectory_id];
+      LOG(INFO) << "Processing " << bag_filename << "...";
+      if (trajectory_proto.node_size() == 0) {
+        continue;
+      }
 
-//      const carto::transform::TransformInterpolationBuffer
-//          transform_interpolation_buffer(trajectory_proto);
-//      rosbag2_cpp::Reader bag_reader;
-//      bag_reader.open(bag_filename);
-//      rosbag2_storage::BagMetadata bag_metadata = bag_reader.get_metadata();
-//      const rclcpp::Time begin_time(bag_metadata.starting_time);
+      std::shared_ptr<tf2_ros::Buffer> tf_buffer = std::make_shared<tf2_ros::Buffer>(clock);
+      tf_buffer->setUsingDedicatedThread(true);
 
-//      // We need to keep 'tf_buffer' small because it becomes very inefficient
-//      // otherwise. We make sure that tf_messages are published before any data
-//      // messages, so that tf lookups always work.
-//      std::deque<rosbag::MessageInstance> delayed_messages;
-//      // We publish tf messages one second earlier than other messages. Under
-//      // the assumption of higher frequency tf this should ensure that tf can
-//      // always interpolate.
-//      const tf2::Duration kDelay = tf2::durationFromSec(1.);
-//      while (bag_reader.has_next()) {
-//        if (use_bag_transforms && message.isType<tf2_msgs::TFMessage>()) {
-//          auto tf_message = message.instantiate<tf2_msgs::TFMessage>();
-//          for (const auto& transform : tf_message->transforms) {
-//            try {
-//              tf_buffer.setTransform(transform, "unused_authority",
-//                                     message.getTopic() == kTfStaticTopic);
-//            } catch (const tf2::TransformException& ex) {
-//              LOG(WARNING) << ex.what();
-//            }
-//          }
-//        }
+      if (!urdf_filename.empty()) {
+        ReadStaticTransformsFromUrdf(urdf_filename, tf_buffer);
+      }
 
-//        while (!delayed_messages.empty() && delayed_messages.front().getTime() <
-//                                                message.getTime() - kDelay) {
-//          const rosbag::MessageInstance& delayed_message =
-//              delayed_messages.front();
+      const carto::transform::TransformInterpolationBuffer
+          transform_interpolation_buffer(trajectory_proto);
+      rosbag2_cpp::Reader bag_reader;
+      bag_reader.open(bag_filename);
+      rosbag2_storage::BagMetadata bag_metadata = bag_reader.get_metadata();
+      const rclcpp::Time begin_time(bag_metadata.starting_time.time_since_epoch().count());
 
-//          std::unique_ptr<carto::io::PointsBatch> points_batch;
-//          if (delayed_message.isType<sensor_msgs::msg::PointCloud2>()) {
-//            points_batch = HandleMessage(
-//                *delayed_message.instantiate<sensor_msgs::msg::PointCloud2>(),
-//                tracking_frame, tf_buffer, transform_interpolation_buffer);
-//          } else if (delayed_message
-//                         .isType<sensor_msgs::msg::MultiEchoLaserScan>()) {
-//            points_batch = HandleMessage(
-//                *delayed_message.instantiate<sensor_msgs::msg::MultiEchoLaserScan>(),
-//                tracking_frame, tf_buffer, transform_interpolation_buffer);
-//          } else if (delayed_message.isType<sensor_msgs::msg::LaserScan>()) {
-//            points_batch = HandleMessage(
-//                *delayed_message.instantiate<sensor_msgs::msg::LaserScan>(),
-//                tracking_frame, tf_buffer, transform_interpolation_buffer);
-//          }
-//          if (points_batch != nullptr) {
-//            points_batch->trajectory_id = trajectory_id;
-//            pipeline.back()->Process(std::move(points_batch));
-//          }
-//          delayed_messages.pop_front();
-//        }
-//        delayed_messages.push_back(message);
-//        LOG_EVERY_N(INFO, 10000)
-//            << "Processed " << (message.getTime() - begin_time).toSec()
-//            << " of " << bag_metadata.duration.count()/1e9 << " bag time seconds...";
-//      }
-//      bag_reader.reset();
-//    }
-//  } while (pipeline.back()->Flush() ==
-//           carto::io::PointsProcessor::FlushResult::kRestartStream);
+      // We need to keep 'tf_buffer' small because it becomes very inefficient
+      // otherwise. We make sure that tf_messages are published before any data
+      // messages, so that tf lookups always work.
+      std::deque<rosbag2_storage::SerializedBagMessage> delayed_messages;
+      // We publish tf messages one second earlier than other messages. Under
+      // the assumption of higher frequency tf this should ensure that tf can
+      // always interpolate.
+      const rclcpp::Duration kDelay(1.0,0.0);
+      auto serializer = rclcpp::Serialization<tf2_msgs::msg::TFMessage>();
+      auto laser_scan_serializer = rclcpp::Serialization<sensor_msgs::msg::LaserScan>();
+      auto multi_echo_laser_scan_serializer = rclcpp::Serialization<sensor_msgs::msg::MultiEchoLaserScan>();
+      auto pcl2_serializer = rclcpp::Serialization<sensor_msgs::msg::PointCloud2>();
+      while (bag_reader.has_next()) {
+        auto message = bag_reader.read_next();
+        if (use_bag_transforms && (message->topic_name  == kTfStaticTopic || message->topic_name  == "/tf")) {
+          tf2_msgs::msg::TFMessage tf_message;
+          rclcpp::SerializedMessage serialized_msg(*message->serialized_data);
+          serializer.deserialize_message(&serialized_msg, &tf_message);
+          for (const auto& transform : tf_message.transforms) {
+            try {
+              tf_buffer->setTransform(transform, "unused_authority",
+                                     message->topic_name == kTfStaticTopic);
+            } catch (const tf2::TransformException& ex) {
+              LOG(WARNING) << ex.what();
+            }
+          }
+        }
+
+        while (!delayed_messages.empty() && delayed_messages.front().time_stamp <
+                                                message->time_stamp - kDelay.nanoseconds()) {
+          const auto delayed_message =
+              delayed_messages.front();
+
+          std::unique_ptr<carto::io::PointsBatch> points_batch;
+
+          for (auto topic_info : bag_metadata.topics_with_message_count) {
+            if (topic_info.topic_metadata.name == delayed_message.topic_name){
+              rclcpp::SerializedMessage serialized_msg(*delayed_message.serialized_data);
+              if (topic_info.topic_metadata.type == "sensor_msgs/msg/LaserScan") {
+                sensor_msgs::msg::LaserScan::SharedPtr laser_scan_msg =
+                    std::make_shared<sensor_msgs::msg::LaserScan>();
+                laser_scan_serializer.deserialize_message(&serialized_msg, laser_scan_msg.get());
+                points_batch = HandleMessage(
+                    laser_scan_msg,
+                    tracking_frame, tf_buffer, transform_interpolation_buffer);
+              } else if (topic_info.topic_metadata.type == "sensor_msgs/msg/MultiEchoLaserScan") {
+                sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr multi_echo_laser_scan_msg;
+                multi_echo_laser_scan_serializer.deserialize_message(&serialized_msg, &multi_echo_laser_scan_msg);
+                points_batch = HandleMessage(
+                    multi_echo_laser_scan_msg,
+                    tracking_frame, tf_buffer, transform_interpolation_buffer);
+              }
+              // TODO : fix deserialization of pcl2
+//              else if (topic_info.topic_metadata.type == "sensor_msgs/msg/PointCloud2") {
+//                sensor_msgs::msg::PointCloud2::ConstSharedPtr pcl2_scan_msg;
+//                pcl2_serializer.deserialize_message(&serialized_msg, &pcl2_scan_msg);
+//                points_batch = HandleMessage(
+//                    pcl2_scan_msg,
+//                    tracking_frame, tf_buffer, transform_interpolation_buffer);
+//              }
+              if (points_batch != nullptr) {
+                points_batch->trajectory_id = trajectory_id;
+                pipeline.back()->Process(std::move(points_batch));
+              }
+              delayed_messages.pop_front();
+              break;
+            }
+          }
+        }
+        delayed_messages.push_back(*message);
+        LOG_EVERY_N(INFO, 10000)
+            << "Processed " << (message->time_stamp - begin_time.nanoseconds())/1e9
+            << " of " << bag_metadata.duration.count()/1e9 << " bag time seconds...";
+      }
+    }
+  } while (pipeline.back()->Flush() ==
+           carto::io::PointsProcessor::FlushResult::kRestartStream);
 }
 
 ::cartographer::io::FileWriterFactory AssetsWriter::CreateFileWriterFactory(

@@ -25,7 +25,6 @@
 
 #include <chrono>
 
-#include "absl/strings/str_split.h"
 #include "cartographer_ros/node.h"
 #include "cartographer_ros/playable_bag.h"
 #include "cartographer_ros/urdf_reader.h"
@@ -217,6 +216,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
       bag_topic_to_sensor_id[bag_resolved_topic] = expected_sensor_id;
     }
 
+    auto serializer = rclcpp::Serialization<tf2_msgs::msg::TFMessage>();
     playable_bag_multiplexer.AddPlayableBag(PlayableBag(
         bag_filename, current_bag_index, kDelay,
         // PlayableBag::FilteringEarlyMessageHandler is used to get an early
@@ -224,11 +224,10 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
         // When a message is retrieved by GetNextMessage() further below,
         // we will have already inserted further 'kDelay' seconds worth of
         // transforms into 'tf_buffer' via this lambda.
-        [&tf_publisher, tf_buffer, cartographer_offline_node](std::shared_ptr<rosbag2_storage::SerializedBagMessage> msg) {
+        [&tf_publisher, tf_buffer, cartographer_offline_node, serializer](std::shared_ptr<rosbag2_storage::SerializedBagMessage> msg) {
           // TODO: filter bag msg per type ? Planned rosbag2 evolution ?
           if (msg->topic_name  == kTfTopic || msg->topic_name  == kTfStaticTopic) {
             if (FLAGS_use_bag_transforms) {
-              auto serializer = rclcpp::Serialization<tf2_msgs::msg::TFMessage>();
               tf2_msgs::msg::TFMessage tf_message;
               rclcpp::SerializedMessage serialized_msg(*msg->serialized_data);
               try {
@@ -287,8 +286,6 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
           ? playable_bag_multiplexer.PeekMessageTime()
           : rclcpp::Time();
 
-  // Waiting to have of way to check SerializedBagMessage contained type without deserialization
-  // https://github.com/ros2/rosbag2/issues/677
   auto laser_scan_serializer = rclcpp::Serialization<sensor_msgs::msg::LaserScan>();
   auto multi_echo_laser_scan_serializer = rclcpp::Serialization<sensor_msgs::msg::MultiEchoLaserScan>();
   auto pcl2_serializer = rclcpp::Serialization<sensor_msgs::msg::PointCloud2>();
@@ -383,7 +380,6 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
     }
     clock.clock = rclcpp::Time(msg.time_stamp);
     clock_publisher->publish(clock);
-    // TODO: currently leaking due to rclcpp bug
     rclcpp::spin_some(cartographer_offline_node);
 
     if (is_last_message_in_bag) {

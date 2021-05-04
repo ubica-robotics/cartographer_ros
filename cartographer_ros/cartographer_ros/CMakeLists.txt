@@ -12,21 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#google_binary(cartographer_assets_writer
-#  SRCS
-#    assets_writer_main.cc
-#    ros_map_writing_points_processor.h
-#    ros_map_writing_points_processor.cc
-#)
-
-#install(TARGETS cartographer_assets_writer
-#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#)
-
-
-
 google_binary(cartographer_node
   SRCS
     node_main.cc
@@ -42,10 +27,18 @@ google_binary(cartographer_offline_node
     offline_node_main.cc
 )
 
+google_binary(cartographer_assets_writer
+  SRCS
+    assets_writer_main.cc
+    ros_map_writing_points_processor.h
+    ros_map_writing_points_processor.cc
+)
+
 install(TARGETS
   cartographer_node
   cartographer_occupancy_grid_node
   cartographer_offline_node
+  cartographer_assets_writer
   DESTINATION lib/${PROJECT_NAME})
 
 #google_binary(cartographer_rosbag_validate

@@ -56,7 +56,6 @@ rclcpp::Time PlayableBag::PeekMessageTime() const {
   return rclcpp::Time(buffered_messages_.front().time_stamp);
 }
 
-// TODO: check tick duration
 std::tuple<rclcpp::Time, rclcpp::Time> PlayableBag::GetBeginEndTime() const {
   return std::make_tuple(
     rclcpp::Time(bag_metadata.starting_time.time_since_epoch().count()),
