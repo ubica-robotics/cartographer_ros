@@ -69,6 +69,10 @@ void Run(const std::string& pbstream_filename, const std::string& map_filestem,
 }  // namespace cartographer_ros
 
 int main(int argc, char** argv) {
+  // Init rclcpp first because gflags reorders command line flags in argv
+  rclcpp::init(argc, argv);
+
+  google::AllowCommandLineReparsing();
   FLAGS_alsologtostderr = true;
   google::InitGoogleLogging(argv[0]);
   google::ParseCommandLineFlags(&argc, &argv, true);
@@ -78,4 +82,5 @@ int main(int argc, char** argv) {
 
   ::cartographer_ros::Run(FLAGS_pbstream_filename, FLAGS_map_filestem,
                           FLAGS_resolution);
+  rclcpp::shutdown();
 }

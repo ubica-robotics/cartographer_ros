@@ -34,55 +34,36 @@ google_binary(cartographer_assets_writer
     ros_map_writing_points_processor.cc
 )
 
-install(TARGETS
-  cartographer_node
-  cartographer_occupancy_grid_node
-  cartographer_offline_node
-  cartographer_assets_writer
-  DESTINATION lib/${PROJECT_NAME})
+google_binary(cartographer_pbstream_map_publisher
+  SRCS
+    pbstream_map_publisher_main.cc
+)
 
 #google_binary(cartographer_rosbag_validate
 #  SRCS
 #    rosbag_validate_main.cc
 #)
 
-#install(TARGETS cartographer_rosbag_validate
-#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#)
+install(TARGETS
+  cartographer_node
+  cartographer_occupancy_grid_node
+  cartographer_offline_node
+  cartographer_assets_writer
+  cartographer_pbstream_map_publisher
+  #cartographer_rosbag_validate
+  DESTINATION lib/${PROJECT_NAME})
 
 #google_binary(cartographer_pbstream_to_ros_map
 #  SRCS
 #    pbstream_to_ros_map_main.cc
 #)
 
-#install(TARGETS cartographer_pbstream_to_ros_map
-#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#)
 
-#google_binary(cartographer_pbstream_map_publisher
-#  SRCS
-#    pbstream_map_publisher_main.cc
-#)
 
-#install(TARGETS cartographer_pbstream_map_publisher
-#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#)
 
 #google_binary(cartographer_dev_pbstream_trajectories_to_rosbag
 #  SRCS
 #  dev/pbstream_trajectories_to_rosbag_main.cc
-#)
-
-#install(TARGETS cartographer_dev_pbstream_trajectories_to_rosbag
-#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 #)
 
 #google_binary(cartographer_dev_rosbag_publisher
@@ -90,22 +71,12 @@ install(TARGETS
 #  dev/rosbag_publisher_main.cc
 #)
 
-#install(TARGETS cartographer_dev_rosbag_publisher
-#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#)
 
 #google_binary(cartographer_dev_trajectory_comparison
 #  SRCS
 #  dev/trajectory_comparison_main.cc
 #)
 
-#install(TARGETS cartographer_dev_trajectory_comparison
-#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#)
 
 ## TODO(cschuet): Add support for shared library case.
 #if (${BUILD_GRPC})
@@ -114,21 +85,10 @@ install(TARGETS
 #      cartographer_grpc/node_grpc_main.cc
 #  )
 
-#  install(TARGETS cartographer_grpc_node
-#    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#  )
 
 #  google_binary(cartographer_grpc_offline_node
 #    SRCS
 #      cartographer_grpc/offline_node_grpc_main.cc
-#  )
-
-#  install(TARGETS cartographer_grpc_offline_node
-#    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 #  )
 
 #  install(PROGRAMS
