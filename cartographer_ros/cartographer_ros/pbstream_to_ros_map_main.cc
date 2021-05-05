@@ -26,6 +26,7 @@
 #include "cartographer_ros/ros_map.h"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
+#include <rclcpp/rclcpp.hpp>
 
 DEFINE_string(pbstream_filename, "",
               "Filename of a pbstream to draw a map from.");
@@ -75,7 +76,7 @@ int main(int argc, char** argv) {
   google::AllowCommandLineReparsing();
   FLAGS_alsologtostderr = true;
   google::InitGoogleLogging(argv[0]);
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  google::ParseCommandLineFlags(&argc, &argv, false);
 
   CHECK(!FLAGS_pbstream_filename.empty()) << "-pbstream_filename is missing.";
   CHECK(!FLAGS_map_filestem.empty()) << "-map_filestem is missing.";
