@@ -44,11 +44,10 @@ google_binary(cartographer_pbstream_to_ros_map
     pbstream_to_ros_map_main.cc
 )
 
-
-#google_binary(cartographer_rosbag_validate
-#  SRCS
-#    rosbag_validate_main.cc
-#)
+google_binary(cartographer_rosbag_validate
+  SRCS
+    rosbag_validate_main.cc
+)
 
 install(TARGETS
   cartographer_node
@@ -57,11 +56,8 @@ install(TARGETS
   cartographer_assets_writer
   cartographer_pbstream_map_publisher
   cartographer_pbstream_to_ros_map
-  #cartographer_rosbag_validate
+  cartographer_rosbag_validate
   DESTINATION lib/${PROJECT_NAME})
-
-
-
 
 
 #google_binary(cartographer_dev_pbstream_trajectories_to_rosbag
