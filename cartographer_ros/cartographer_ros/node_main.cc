@@ -49,6 +49,9 @@ namespace {
 
 void Run() {
   rclcpp::Node::SharedPtr cartographer_node = rclcpp::Node::make_shared("cartographer_node");
+
+
+  // CONFIGURE 1
   constexpr double kTfBufferCacheTimeInSeconds = 10.;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer =
@@ -67,18 +70,31 @@ void Run() {
 
   auto map_builder =
     cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
+
+
+  // CONFIGURE 0
+
+  // Change this to node being the actual node instead of taking one as an argument
+
   auto node = std::make_shared<cartographer_ros::Node>(
     node_options, std::move(map_builder), tf_buffer, cartographer_node,
     FLAGS_collect_metrics);
+
+  // Configure
   if (!FLAGS_load_state_filename.empty()) {
     node->LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);
   }
 
+   // Active
   if (FLAGS_start_trajectory_with_default_topics) {
     node->StartTrajectoryWithDefaultTopics(trajectory_options);
   }
 
+  // Activating 0
+
   rclcpp::spin(cartographer_node);
+
+  // Deactivating or Shutting down 1
 
   node->FinishAllTrajectories();
   node->RunFinalOptimization();
@@ -87,6 +103,9 @@ void Run() {
     node->SerializeState(FLAGS_save_state_filename,
                         true /* include_unfinished_submaps */);
   }
+
+  // Deactivating or shutting down
+
 }
 
 }  // namespace
