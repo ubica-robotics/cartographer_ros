@@ -47,7 +47,7 @@ find_package(visualization_msgs REQUIRED)
 find_package(rosbag2_compression REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 find_package(rosbag2_storage REQUIRED)
-
+find_package(nav2_util REQUIRED)
 find_package(absl REQUIRED)
 find_package(LuaGoogle REQUIRED)
 find_package(PCL REQUIRED COMPONENTS common)
@@ -100,6 +100,7 @@ ament_target_dependencies(${PROJECT_NAME} PUBLIC
   rosbag2_storage
   urdf
   urdfdom_headers
+  nav2_util
 )
 add_subdirectory("cartographer_ros")
 target_link_libraries(${PROJECT_NAME} PUBLIC cartographer)
@@ -121,6 +122,7 @@ ament_export_dependencies(
   rosbag2_compression
   rosbag2_cpp
   rosbag2_storage
+  nav2_util
   urdf
   urdfdom_headers)
 
@@ -199,7 +201,8 @@ ament_export_dependencies(
   rosbag2_cpp
   rosbag2_storage
   urdf
-  urdfdom_headers)
+  urdfdom_headers
+  nav2_util)
 ament_export_libraries(${PROJECT_NAME})
 ament_export_include_directories(include)
 

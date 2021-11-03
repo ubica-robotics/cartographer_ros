@@ -61,6 +61,7 @@
   <depend>tf2</depend>
   <depend>tf2_eigen</depend>
   <depend>tf2_ros</depend>
+  <depend>nav2_util</depend>
   <depend>urdf</depend>
   <depend>visualization_msgs</depend>
 
