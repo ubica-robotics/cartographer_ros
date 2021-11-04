@@ -18,6 +18,8 @@ project(cartographer_ros)
 
 find_package(ament_cmake REQUIRED)
 
+add_compile_options(-g)
+
 # Default to C++17
 set(CMAKE_CXX_STANDARD 17)
 

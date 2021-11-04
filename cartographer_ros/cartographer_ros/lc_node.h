@@ -64,7 +64,7 @@ class Node : public nav2_util::LifecycleNode {
  public:
   Node(const NodeOptions& node_options,
        std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
-       bool collect_metrics);
+       bool collect_metrics, cartographer_ros::TrajectoryOptions trajectory_options);
   ~Node();
 
   Node(const Node&) = delete;
@@ -185,6 +185,8 @@ class Node : public nav2_util::LifecycleNode {
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener;
+
+  cartographer_ros::TrajectoryOptions trajectory_options_;
 
   absl::Mutex mutex_;
   std::unique_ptr<cartographer_ros::metrics::FamilyFactory> metrics_registry_;
