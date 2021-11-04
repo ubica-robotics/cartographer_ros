@@ -62,7 +62,9 @@ namespace cartographer_ros {
 // Wires up ROS topics to SLAM.
 class Node : public nav2_util::LifecycleNode {
  public:
-  Node(const NodeOptions& node_options,
+  Node(
+      const rclcpp::NodeOptions& options,
+      const NodeOptions& node_options,
        std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
        bool collect_metrics, cartographer_ros::TrajectoryOptions trajectory_options);
   ~Node();

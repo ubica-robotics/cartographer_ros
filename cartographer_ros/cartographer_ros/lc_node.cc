@@ -115,12 +115,12 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state) {
 }  // namespace
 
 Node::Node(
+    const rclcpp::NodeOptions& options,
     const NodeOptions& node_options,
     std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
     const bool collect_metrics, cartographer_ros::TrajectoryOptions trajectory_options)
-    : nav2_util::LifecycleNode("cartographer_lc_node","",false), node_options_(node_options)
+    : nav2_util::LifecycleNode("cartographer_lc_node","",false, options), node_options_(node_options)
 {
-  DEBUG<<"CONSTRUCTOR1"<<END;
   constexpr double kTfBufferCacheTimeInSeconds = 10.;
   trajectory_options_=trajectory_options;
 
@@ -135,14 +135,12 @@ Node::Node(
     metrics_registry_ = absl::make_unique<metrics::FamilyFactory>();
     carto::metrics::RegisterAllMetrics(metrics_registry_.get());
   }
-
-  DEBUG<<"CONSTRUCTOR0"<<END;
 }
 
 Node::~Node() {}
 
 nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*state*/){
-  DEBUG<<"ON CONFIGURE1"<<END;
+
   submap_list_publisher_ =
       create_publisher<::cartographer_ros_msgs::msg::SubmapList>(
           kSubmapListTopic, 10);
@@ -198,18 +196,17 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
     LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);
   }
 
-  DEBUG<<"ON CONFIGURE0"<<END;
-
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
 nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*state*/){
-  DEBUG<<"ON ACTIVATE1"<<END;
+
   submap_list_publisher_->on_activate();
   trajectory_node_list_publisher_->on_activate();
   landmark_poses_list_publisher_->on_activate();
   constraint_list_publisher_->on_activate();
-  tracked_pose_publisher_->on_activate();
+  if (node_options_.publish_tracked_pose) {
+    tracked_pose_publisher_->on_activate();}
   scan_matched_point_cloud_publisher_->on_activate();
 
 
@@ -247,8 +244,9 @@ nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*st
    StartTrajectoryWithDefaultTopics(trajectory_options_);
  }
 
+ createBond();
+
  return nav2_util::CallbackReturn::SUCCESS;
-  DEBUG<<"ON ACTIVATE0"<<END;
 }
 
 
@@ -275,6 +273,8 @@ nav2_util::CallbackReturn Node::on_deactivate(const rclcpp_lifecycle::State & /*
     SerializeState(FLAGS_save_state_filename,
                         true /* include_unfinished_submaps */);
   }
+
+  destroyBond();
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
@@ -1110,7 +1110,7 @@ int main(int argc, char** argv) {
     cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
 
 
-  auto node = std::make_shared<cartographer_ros::Node>(node_options, std::move(map_builder), FLAGS_collect_metrics, trajectory_options);
+  auto node = std::make_shared<cartographer_ros::Node>(rclcpp::NodeOptions(), node_options, std::move(map_builder), FLAGS_collect_metrics, trajectory_options);
 
   ::rclcpp::spin(node->get_node_base_interface());
   ::rclcpp::shutdown();

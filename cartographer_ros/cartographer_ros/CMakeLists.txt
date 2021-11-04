@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-google_binary(cartographer_node
-  SRCS
-    node_main.cc
-)
+#google_binary(cartographer_node
+#  SRCS
+#    node_main.cc
+#)
 
 google_binary(cartographer_lc_node
   SRCS
-    lc_node.cpp
+    lc_node.cc
     lc_node.h
 )
 
@@ -28,10 +28,10 @@ google_binary(cartographer_occupancy_grid_node
     occupancy_grid_node_main.cc
 )
 
-google_binary(cartographer_offline_node
-  SRCS
-    offline_node_main.cc
-)
+#google_binary(cartographer_offline_node
+#  SRCS
+#    offline_node_main.cc
+#)
 
 google_binary(cartographer_assets_writer
   SRCS
@@ -56,10 +56,10 @@ google_binary(cartographer_rosbag_validate
 )
 
 install(TARGETS
-  cartographer_node
+#  cartographer_node
   cartographer_lc_node
   cartographer_occupancy_grid_node
-  cartographer_offline_node
+#  cartographer_offline_node
   cartographer_assets_writer
   cartographer_pbstream_map_publisher
   cartographer_pbstream_to_ros_map
