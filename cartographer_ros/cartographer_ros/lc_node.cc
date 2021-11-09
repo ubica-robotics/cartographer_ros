@@ -86,11 +86,11 @@ using TrajectoryState =
 namespace {
 // Subscribes to the 'topic' for 'trajectory_id' using the 'node_handle' and
 // calls 'handler' on the 'node' to handle messages. Returns the subscriber.
-template <typename MessageType>
-::rclcpp::SubscriptionBase::SharedPtr SubscribeWithHandler(
+template <typename MessageType> ::rclcpp::SubscriptionBase::SharedPtr SubscribeWithHandler(
     void (Node::*handler)(int, const std::string&,
                           const typename MessageType::ConstSharedPtr&),
-    const int trajectory_id, const std::string& topic, Node* const node) {
+  const int trajectory_id, const std::string& topic,
+   Node* const node) {
   return node->create_subscription<MessageType>(
       topic, rclcpp::SensorDataQoS(),
       [node, handler, trajectory_id, topic](const typename MessageType::ConstSharedPtr msg) {
@@ -115,20 +115,19 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state) {
 }  // namespace
 
 Node::Node(
-    const rclcpp::NodeOptions& options,
     const NodeOptions& node_options,
     std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
     const bool collect_metrics, cartographer_ros::TrajectoryOptions trajectory_options)
-    : nav2_util::LifecycleNode("cartographer_lc_node","",false, options), node_options_(node_options)
+    : nav2_util::LifecycleNode("cartographer_lc_node","",false), node_options_(node_options)
 {
+
   constexpr double kTfBufferCacheTimeInSeconds = 10.;
+  cartographer_ros::tf_buffer = std::make_shared<tf2_ros::Buffer>(get_clock(),tf2::durationFromSec(kTfBufferCacheTimeInSeconds));
+  cartographer_ros::tf_listener = std::make_shared<tf2_ros::TransformListener>(*cartographer_ros::tf_buffer);
+  cartographer_ros::tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+
   trajectory_options_=trajectory_options;
-
-  tf_buffer = std::make_shared<tf2_ros::Buffer>(get_clock(),tf2::durationFromSec(kTfBufferCacheTimeInSeconds));
-  tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
-  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this); // ?
-
-  map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), tf_buffer.get()));
+  map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), cartographer_ros::tf_buffer.get()));
 
   absl::MutexLock lock(&mutex_);
   if (collect_metrics) {
@@ -162,6 +161,12 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
   scan_matched_point_cloud_publisher_ =
       create_publisher<sensor_msgs::msg::PointCloud2>(
         kScanMatchedPointCloudTopic, 10);
+
+
+  test_server = create_service<std_srvs::srv::Trigger>(
+      "test_service",
+      std::bind(
+          &Node::testcb, this, std::placeholders::_1, std::placeholders::_2));
 
   submap_query_server_ = create_service<cartographer_ros_msgs::srv::SubmapQuery>(
       kSubmapQueryServiceName,
@@ -239,11 +244,6 @@ nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*st
       PublishConstraintList();
     });
 
-  // Active
- if (FLAGS_start_trajectory_with_default_topics) {
-   StartTrajectoryWithDefaultTopics(trajectory_options_);
- }
-
  createBond();
 
  return nav2_util::CallbackReturn::SUCCESS;
@@ -306,6 +306,11 @@ nav2_util::CallbackReturn Node::on_shutdown(const rclcpp_lifecycle::State & /*st
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
+bool Node::testcb(std::shared_ptr<std_srvs::srv::Trigger::Request> request, std::shared_ptr<std_srvs::srv::Trigger::Response> response){
+  DEBUG << "1" <<END;
+  StartTrajectoryWithDefaultTopics(trajectory_options_);
+  return true;
+}
 
 //config
 bool Node::handleSubmapQuery(
@@ -457,14 +462,14 @@ void Node::PublishLocalTrajectoryData() {
               tracking_to_local * (*trajectory_data.published_to_tracking));
           stamped_transforms.push_back(stamped_transform);
 
-          tf_broadcaster_->sendTransform(stamped_transforms);
+          cartographer_ros::tf_broadcaster_->sendTransform(stamped_transforms);
         } else {
           stamped_transform.header.frame_id = node_options_.map_frame;
           stamped_transform.child_frame_id =
               trajectory_data.trajectory_options.published_frame;
           stamped_transform.transform = ToGeometryMsgTransform(
               tracking_to_map * (*trajectory_data.published_to_tracking));
-          tf_broadcaster_->sendTransform(stamped_transform);
+          cartographer_ros::tf_broadcaster_->sendTransform(stamped_transform);
         }
       }
       if (node_options_.publish_tracked_pose) {
@@ -551,11 +556,16 @@ Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
 int Node::AddTrajectory(const TrajectoryOptions& options) {
   const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>
       expected_sensor_ids = ComputeExpectedSensorIds(options);
+  DEBUG<<"3"<<END;
   const int trajectory_id =
       map_builder_bridge_->AddTrajectory(expected_sensor_ids, options);
+  DEBUG<<"4"<<END;
   AddExtrapolator(trajectory_id, options);
+  DEBUG<<"5"<<END;
   AddSensorSamplers(trajectory_id, options);
+  DEBUG<<"6"<<END;
   LaunchSubscribers(options, trajectory_id);
+  DEBUG<<"7"<<END;
   maybe_warn_about_topic_mismatch_timer_ = create_wall_timer(
     std::chrono::milliseconds(int(kTopicMismatchCheckDelaySec * 1000)),
     [this]() {
@@ -782,6 +792,7 @@ bool Node::handleStartTrajectory(
 void Node::StartTrajectoryWithDefaultTopics(const TrajectoryOptions& options) {
   absl::MutexLock lock(&mutex_);
   CHECK(ValidateTrajectoryOptions(options));
+  DEBUG << "2" <<END;
   AddTrajectory(options);
 }
 
@@ -1110,7 +1121,7 @@ int main(int argc, char** argv) {
     cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
 
 
-  auto node = std::make_shared<cartographer_ros::Node>(rclcpp::NodeOptions(), node_options, std::move(map_builder), FLAGS_collect_metrics, trajectory_options);
+  auto node = std::make_shared<cartographer_ros::Node>( node_options, std::move(map_builder), FLAGS_collect_metrics, trajectory_options);
 
   ::rclcpp::spin(node->get_node_base_interface());
   ::rclcpp::shutdown();

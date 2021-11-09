@@ -52,18 +52,23 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
-
+#include <std_srvs/srv/trigger.hpp>
 #include "nav2_util/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
 
 namespace cartographer_ros {
+namespace  {
+std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+std::shared_ptr<tf2_ros::Buffer> tf_buffer;
+std::shared_ptr<tf2_ros::TransformListener> tf_listener;
+}
+
 
 // Wires up ROS topics to SLAM.
 class Node : public nav2_util::LifecycleNode {
  public:
   Node(
-      const rclcpp::NodeOptions& options,
       const NodeOptions& node_options,
        std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
        bool collect_metrics, cartographer_ros::TrajectoryOptions trajectory_options);
@@ -135,6 +140,8 @@ class Node : public nav2_util::LifecycleNode {
     std::string topic;
   };
 
+  bool testcb(std::shared_ptr<std_srvs::srv::Trigger::Request> request, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+
   bool handleSubmapQuery(
       const cartographer_ros_msgs::srv::SubmapQuery::Request::SharedPtr request,
       cartographer_ros_msgs::srv::SubmapQuery::Response::SharedPtr response);
@@ -184,10 +191,6 @@ class Node : public nav2_util::LifecycleNode {
           valid_states);
   const NodeOptions node_options_;
 
-  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-  std::shared_ptr<tf2_ros::Buffer> tf_buffer;
-  std::shared_ptr<tf2_ros::TransformListener> tf_listener;
-
   cartographer_ros::TrajectoryOptions trajectory_options_;
 
   absl::Mutex mutex_;
@@ -202,6 +205,7 @@ class Node : public nav2_util::LifecycleNode {
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>> scan_matched_point_cloud_publisher_;
 
   // These ros service servers need to live for the lifetime of the node.
+  ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr test_server;
   ::rclcpp::Service<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr submap_query_server_;
   ::rclcpp::Service<cartographer_ros_msgs::srv::TrajectoryQuery>::SharedPtr trajectory_query_server;
   ::rclcpp::Service<cartographer_ros_msgs::srv::StartTrajectory>::SharedPtr start_trajectory_server_;

@@ -37,6 +37,7 @@ google_initialize_cartographer_project()
 find_package(cartographer_ros_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -88,6 +89,7 @@ ament_target_dependencies(${PROJECT_NAME} PUBLIC
   cartographer_ros_msgs
   geometry_msgs
   nav_msgs
+  std_srvs
   pcl_conversions
   rclcpp
   sensor_msgs
@@ -112,6 +114,7 @@ ament_export_dependencies(
   cartographer_ros_msgs
   geometry_msgs
   nav_msgs
+  std_srvs
   pcl_conversions
   rclcpp
   sensor_msgs
@@ -190,6 +193,7 @@ ament_export_dependencies(
   cartographer_ros_msgs
   geometry_msgs
   nav_msgs
+  std_srvs
   pcl_conversions
   rclcpp
   sensor_msgs
