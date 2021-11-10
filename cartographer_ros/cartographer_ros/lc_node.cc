@@ -246,9 +246,13 @@ nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*st
 
  createBond();
 
+ // Active
+ if (FLAGS_start_trajectory_with_default_topics) {
+   StartTrajectoryWithDefaultTopics(trajectory_options_);
+ }
+
  return nav2_util::CallbackReturn::SUCCESS;
 }
-
 
 nav2_util::CallbackReturn Node::on_deactivate(const rclcpp_lifecycle::State & /*state*/){
 
@@ -257,7 +261,8 @@ nav2_util::CallbackReturn Node::on_deactivate(const rclcpp_lifecycle::State & /*
   trajectory_node_list_publisher_->on_deactivate();
   landmark_poses_list_publisher_->on_deactivate();
   constraint_list_publisher_->on_deactivate();
-  tracked_pose_publisher_->on_deactivate();
+  if (node_options_.publish_tracked_pose) {
+    tracked_pose_publisher_->on_deactivate();}
   scan_matched_point_cloud_publisher_->on_deactivate();
 
   submap_list_timer_->cancel();
