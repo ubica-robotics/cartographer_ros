@@ -68,10 +68,7 @@ std::shared_ptr<tf2_ros::TransformListener> tf_listener;
 // Wires up ROS topics to SLAM.
 class Node : public nav2_util::LifecycleNode {
  public:
-  Node(
-      const NodeOptions& node_options,
-       std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
-       bool collect_metrics, cartographer_ros::TrajectoryOptions trajectory_options);
+  Node();
   ~Node();
 
   Node(const Node&) = delete;
@@ -189,7 +186,7 @@ class Node : public nav2_util::LifecycleNode {
       const std::set<
           cartographer::mapping::PoseGraphInterface::TrajectoryState>&
           valid_states);
-  const NodeOptions node_options_;
+  NodeOptions node_options_;
 
   cartographer_ros::TrajectoryOptions trajectory_options_;
 

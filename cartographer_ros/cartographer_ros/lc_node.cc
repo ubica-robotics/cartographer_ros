@@ -114,12 +114,26 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state) {
 
 }  // namespace
 
-Node::Node(
-    const NodeOptions& node_options,
-    std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
-    const bool collect_metrics, cartographer_ros::TrajectoryOptions trajectory_options)
-    : nav2_util::LifecycleNode("cartographer_lc_node","",false), node_options_(node_options)
-{
+Node::Node() : nav2_util::LifecycleNode("cartographer_lc_node","",false){}
+
+Node::~Node() {}
+
+nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*state*/){
+
+  CHECK(!FLAGS_configuration_directory.empty())
+      << "-configuration_directory is missing.";
+  CHECK(!FLAGS_configuration_basename.empty())
+      << "-configuration_basename is missing.";
+
+  cartographer_ros::ScopedRosLogSink ros_log_sink;
+
+  cartographer_ros::TrajectoryOptions trajectory_options;
+  std::tie(node_options_, trajectory_options) =
+      cartographer_ros::LoadOptions(FLAGS_configuration_directory, FLAGS_configuration_basename);
+
+  auto map_builder =
+    cartographer::mapping::CreateMapBuilder(node_options_.map_builder_options);
+
 
   constexpr double kTfBufferCacheTimeInSeconds = 10.;
   cartographer_ros::tf_buffer = std::make_shared<tf2_ros::Buffer>(get_clock(),tf2::durationFromSec(kTfBufferCacheTimeInSeconds));
@@ -130,15 +144,10 @@ Node::Node(
   map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), cartographer_ros::tf_buffer.get()));
 
   absl::MutexLock lock(&mutex_);
-  if (collect_metrics) {
+  if (FLAGS_collect_metrics) {
     metrics_registry_ = absl::make_unique<metrics::FamilyFactory>();
     carto::metrics::RegisterAllMetrics(metrics_registry_.get());
   }
-}
-
-Node::~Node() {}
-
-nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*state*/){
 
   submap_list_publisher_ =
       create_publisher<::cartographer_ros_msgs::msg::SubmapList>(
@@ -161,7 +170,6 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
   scan_matched_point_cloud_publisher_ =
       create_publisher<sensor_msgs::msg::PointCloud2>(
         kScanMatchedPointCloudTopic, 10);
-
 
   test_server = create_service<std_srvs::srv::Trigger>(
       "test_service",
@@ -300,6 +308,9 @@ nav2_util::CallbackReturn Node::on_cleanup(const rclcpp_lifecycle::State & /*sta
   write_state_server_.reset();
   get_trajectory_states_server_.reset();
   read_metrics_server_.reset();
+
+  node_options_.~NodeOptions();
+  trajectory_options_.~TrajectoryOptions();
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
@@ -1110,23 +1121,7 @@ int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
   google::ParseCommandLineFlags(&argc, &argv, false);
 
-  CHECK(!FLAGS_configuration_directory.empty())
-      << "-configuration_directory is missing.";
-  CHECK(!FLAGS_configuration_basename.empty())
-      << "-configuration_basename is missing.";
-
-  cartographer_ros::ScopedRosLogSink ros_log_sink;
-
-  cartographer_ros::NodeOptions node_options;
-  cartographer_ros::TrajectoryOptions trajectory_options;
-  std::tie(node_options, trajectory_options) =
-      cartographer_ros::LoadOptions(FLAGS_configuration_directory, FLAGS_configuration_basename);
-
-  auto map_builder =
-    cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
-
-
-  auto node = std::make_shared<cartographer_ros::Node>( node_options, std::move(map_builder), FLAGS_collect_metrics, trajectory_options);
+  auto node = std::make_shared<cartographer_ros::Node>();
 
   ::rclcpp::spin(node->get_node_base_interface());
   ::rclcpp::shutdown();
