@@ -126,9 +126,15 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
       << "-configuration_basename is missing.";
 
   cartographer_ros::ScopedRosLogSink ros_log_sink;
-
+  cartographer_ros::NodeOptions node_options;
   cartographer_ros::TrajectoryOptions trajectory_options;
-  std::tie(node_options_, trajectory_options) =
+
+  node_options_=node_options;
+  trajectory_options_=trajectory_options;
+  extrapolators_.clear();
+  sensor_samplers_.clear();
+
+  std::tie(node_options_, trajectory_options_) =
       cartographer_ros::LoadOptions(FLAGS_configuration_directory, FLAGS_configuration_basename);
 
   auto map_builder =
@@ -136,14 +142,14 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
 
 
   constexpr double kTfBufferCacheTimeInSeconds = 10.;
-  cartographer_ros::tf_buffer = std::make_shared<tf2_ros::Buffer>(get_clock(),tf2::durationFromSec(kTfBufferCacheTimeInSeconds));
-  cartographer_ros::tf_listener = std::make_shared<tf2_ros::TransformListener>(*cartographer_ros::tf_buffer);
-  cartographer_ros::tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+  tf_buffer = std::make_shared<tf2_ros::Buffer>(get_clock(),tf2::durationFromSec(kTfBufferCacheTimeInSeconds));
+  tf_listener = std::make_shared<tf2_ros::TransformListener>(*cartographer_ros::tf_buffer);
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
-  trajectory_options_=trajectory_options;
-  map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), cartographer_ros::tf_buffer.get()));
 
   absl::MutexLock lock(&mutex_);
+  map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), tf_buffer.get()));
+
   if (FLAGS_collect_metrics) {
     metrics_registry_ = absl::make_unique<metrics::FamilyFactory>();
     carto::metrics::RegisterAllMetrics(metrics_registry_.get());
@@ -255,9 +261,9 @@ nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*st
  createBond();
 
  // Active
- if (FLAGS_start_trajectory_with_default_topics) {
-   StartTrajectoryWithDefaultTopics(trajectory_options_);
- }
+// if (FLAGS_start_trajectory_with_default_topics) {
+//   StartTrajectoryWithDefaultTopics(trajectory_options_);
+// }
 
  return nav2_util::CallbackReturn::SUCCESS;
 }
@@ -309,8 +315,8 @@ nav2_util::CallbackReturn Node::on_cleanup(const rclcpp_lifecycle::State & /*sta
   get_trajectory_states_server_.reset();
   read_metrics_server_.reset();
 
-  node_options_.~NodeOptions();
-  trajectory_options_.~TrajectoryOptions();
+  //node_options_.~NodeOptions();
+  //trajectory_options_.~TrajectoryOptions();
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
@@ -478,14 +484,14 @@ void Node::PublishLocalTrajectoryData() {
               tracking_to_local * (*trajectory_data.published_to_tracking));
           stamped_transforms.push_back(stamped_transform);
 
-          cartographer_ros::tf_broadcaster_->sendTransform(stamped_transforms);
+          tf_broadcaster_->sendTransform(stamped_transforms);
         } else {
           stamped_transform.header.frame_id = node_options_.map_frame;
           stamped_transform.child_frame_id =
               trajectory_data.trajectory_options.published_frame;
           stamped_transform.transform = ToGeometryMsgTransform(
               tracking_to_map * (*trajectory_data.published_to_tracking));
-          cartographer_ros::tf_broadcaster_->sendTransform(stamped_transform);
+          tf_broadcaster_->sendTransform(stamped_transform);
         }
       }
       if (node_options_.publish_tracked_pose) {
@@ -590,6 +596,7 @@ int Node::AddTrajectory(const TrajectoryOptions& options) {
   for (const auto& sensor_id : expected_sensor_ids) {
     subscribed_topics_.insert(sensor_id.id);
   }
+  DEBUG<<"8"<<END;
   return trajectory_id;
 }
 
