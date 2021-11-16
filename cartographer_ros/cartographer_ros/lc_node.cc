@@ -258,12 +258,12 @@ nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*st
       PublishConstraintList();
     });
 
- createBond();
+  // Active
+  if (FLAGS_start_trajectory_with_default_topics) {
+    StartTrajectoryWithDefaultTopics(trajectory_options_);
+  }
 
- // Active
-// if (FLAGS_start_trajectory_with_default_topics) {
-//   StartTrajectoryWithDefaultTopics(trajectory_options_);
-// }
+ createBond();
 
  return nav2_util::CallbackReturn::SUCCESS;
 }
@@ -329,7 +329,6 @@ nav2_util::CallbackReturn Node::on_shutdown(const rclcpp_lifecycle::State & /*st
 }
 
 bool Node::testcb(std::shared_ptr<std_srvs::srv::Trigger::Request> request, std::shared_ptr<std_srvs::srv::Trigger::Response> response){
-  DEBUG << "1" <<END;
   StartTrajectoryWithDefaultTopics(trajectory_options_);
   return true;
 }
@@ -578,16 +577,11 @@ Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
 int Node::AddTrajectory(const TrajectoryOptions& options) {
   const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>
       expected_sensor_ids = ComputeExpectedSensorIds(options);
-  DEBUG<<"3"<<END;
   const int trajectory_id =
       map_builder_bridge_->AddTrajectory(expected_sensor_ids, options);
-  DEBUG<<"4"<<END;
   AddExtrapolator(trajectory_id, options);
-  DEBUG<<"5"<<END;
   AddSensorSamplers(trajectory_id, options);
-  DEBUG<<"6"<<END;
   LaunchSubscribers(options, trajectory_id);
-  DEBUG<<"7"<<END;
   maybe_warn_about_topic_mismatch_timer_ = create_wall_timer(
     std::chrono::milliseconds(int(kTopicMismatchCheckDelaySec * 1000)),
     [this]() {
@@ -596,7 +590,6 @@ int Node::AddTrajectory(const TrajectoryOptions& options) {
   for (const auto& sensor_id : expected_sensor_ids) {
     subscribed_topics_.insert(sensor_id.id);
   }
-  DEBUG<<"8"<<END;
   return trajectory_id;
 }
 
@@ -815,7 +808,6 @@ bool Node::handleStartTrajectory(
 void Node::StartTrajectoryWithDefaultTopics(const TrajectoryOptions& options) {
   absl::MutexLock lock(&mutex_);
   CHECK(ValidateTrajectoryOptions(options));
-  DEBUG << "2" <<END;
   AddTrajectory(options);
 }
 
