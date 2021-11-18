@@ -114,7 +114,9 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state) {
 
 }  // namespace
 
-Node::Node() : nav2_util::LifecycleNode("cartographer_lc_node","",false){}
+Node::Node() : nav2_util::LifecycleNode("cartographer_lc_node","",false){
+  cartographer_ros::ScopedRosLogSink ros_log_sink;
+}
 
 Node::~Node() {}
 
@@ -124,15 +126,6 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
       << "-configuration_directory is missing.";
   CHECK(!FLAGS_configuration_basename.empty())
       << "-configuration_basename is missing.";
-
-  cartographer_ros::ScopedRosLogSink ros_log_sink;
-  cartographer_ros::NodeOptions node_options;
-  cartographer_ros::TrajectoryOptions trajectory_options;
-
-  node_options_=node_options;
-  trajectory_options_=trajectory_options;
-  extrapolators_.clear();
-  sensor_samplers_.clear();
 
   std::tie(node_options_, trajectory_options_) =
       cartographer_ros::LoadOptions(FLAGS_configuration_directory, FLAGS_configuration_basename);
@@ -300,6 +293,20 @@ nav2_util::CallbackReturn Node::on_deactivate(const rclcpp_lifecycle::State & /*
 
 nav2_util::CallbackReturn Node::on_cleanup(const rclcpp_lifecycle::State & /*state*/){
 
+  cartographer_ros::NodeOptions node_options;
+  cartographer_ros::TrajectoryOptions trajectory_options;
+
+  node_options_=node_options;
+  trajectory_options_=trajectory_options;
+  extrapolators_.clear();
+  sensor_samplers_.clear();
+  subscribers_.clear();
+
+  tf_buffer->clear();
+  tf_buffer.reset();
+  tf_listener.reset();
+  tf_broadcaster_.reset();
+
   submap_list_publisher_.reset();
   trajectory_node_list_publisher_.reset();
   landmark_poses_list_publisher_.reset();
@@ -314,9 +321,6 @@ nav2_util::CallbackReturn Node::on_cleanup(const rclcpp_lifecycle::State & /*sta
   write_state_server_.reset();
   get_trajectory_states_server_.reset();
   read_metrics_server_.reset();
-
-  //node_options_.~NodeOptions();
-  //trajectory_options_.~TrajectoryOptions();
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
