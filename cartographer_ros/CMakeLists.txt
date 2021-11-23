@@ -18,8 +18,6 @@ project(cartographer_ros)
 
 find_package(ament_cmake REQUIRED)
 
-add_compile_options(-g)
-
 # Default to C++17
 set(CMAKE_CXX_STANDARD 17)
 
@@ -57,12 +55,6 @@ find_package(PCL REQUIRED COMPONENTS common)
 find_package(Eigen3 REQUIRED)
 find_package(urdf REQUIRED)
 find_package(urdfdom_headers REQUIRED)
-
-if(DEFINED urdfdom_headers_VERSION)
-  if(${urdfdom_headers_VERSION} GREATER 0.4.1)
-    add_definitions(-DURDFDOM_HEADERS_HAS_SHARED_PTR_DEFS)
-  endif()
-endif()
 
 
 include_directories(

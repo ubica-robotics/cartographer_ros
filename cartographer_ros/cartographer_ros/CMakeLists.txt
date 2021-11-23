@@ -25,7 +25,7 @@ google_binary(cartographer_lc_node
 
 google_binary(cartographer_occupancy_grid_node
   SRCS
-    occupancy_grid_node_main.cc
+    pbstream_map_publisher_main.cc
 )
 
 #google_binary(cartographer_offline_node
