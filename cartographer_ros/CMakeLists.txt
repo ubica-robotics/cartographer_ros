@@ -30,6 +30,8 @@ include("${CARTOGRAPHER_CMAKE_DIR}/functions.cmake")
 set(BUILD_SHARED_LIBS OFF)
 option(BUILD_GRPC "build features that require Cartographer gRPC support" false)
 
+add_compile_options(-g)
+
 google_initialize_cartographer_project()
 
 find_package(cartographer_ros_msgs REQUIRED)
@@ -54,6 +56,7 @@ find_package(PCL REQUIRED COMPONENTS common)
 find_package(Eigen3 REQUIRED)
 find_package(urdf REQUIRED)
 find_package(urdfdom_headers REQUIRED)
+find_package(backward_ros)
 
 if(DEFINED urdfdom_headers_VERSION)
   if(${urdfdom_headers_VERSION} GREATER 0.4.1)
@@ -100,6 +103,7 @@ ament_target_dependencies(${PROJECT_NAME} PUBLIC
   rosbag2_storage
   urdf
   urdfdom_headers
+  backward_ros
 )
 add_subdirectory("cartographer_ros")
 target_link_libraries(${PROJECT_NAME} PUBLIC cartographer)
@@ -122,7 +126,8 @@ ament_export_dependencies(
   rosbag2_cpp
   rosbag2_storage
   urdf
-  urdfdom_headers)
+  urdfdom_headers
+  backward_ros)
 
 # Lua
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${LUA_INCLUDE_DIR})
@@ -199,7 +204,8 @@ ament_export_dependencies(
   rosbag2_cpp
   rosbag2_storage
   urdf
-  urdfdom_headers)
+  urdfdom_headers
+  backward_ros)
 ament_export_libraries(${PROJECT_NAME})
 ament_export_include_directories(include)
 
