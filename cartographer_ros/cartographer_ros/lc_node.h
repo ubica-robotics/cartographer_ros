@@ -57,7 +57,7 @@
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
 
-namespace cartographer_ros {
+namespace cartographer_ros2 {
 namespace  {
 std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 std::shared_ptr<tf2_ros::Buffer> tf_buffer;
@@ -84,7 +84,7 @@ class Node : public nav2_util::LifecycleNode {
   void RunFinalOptimization();
 
   // Starts the first trajectory with the default topics.
-  void StartTrajectoryWithDefaultTopics(const TrajectoryOptions& options);
+  void StartTrajectoryWithDefaultTopics(const cartographer_ros::TrajectoryOptions& options);
 
   // Returns unique SensorIds for multiple input bag files based on
   // their TrajectoryOptions.
@@ -92,14 +92,14 @@ class Node : public nav2_util::LifecycleNode {
   std::vector<
       std::set<::cartographer::mapping::TrajectoryBuilderInterface::SensorId>>
   ComputeDefaultSensorIdsForMultipleBags(
-      const std::vector<TrajectoryOptions>& bags_options) const;
+      const std::vector<cartographer_ros::TrajectoryOptions>& bags_options) const;
 
   // Adds a trajectory for offline processing, i.e. not listening to topics.
   int AddOfflineTrajectory(
       const std::set<
           cartographer::mapping::TrajectoryBuilderInterface::SensorId>&
           expected_sensor_ids,
-      const TrajectoryOptions& options);
+      const cartographer_ros::TrajectoryOptions& options);
 
   // The following functions handle adding sensor data to a trajectory.
   void HandleOdometryMessage(int trajectory_id, const std::string& sensor_id,
@@ -164,18 +164,18 @@ class Node : public nav2_util::LifecycleNode {
   // Returns the set of SensorIds expected for a trajectory.
   // 'SensorId::id' is the expected ROS topic name.
   std::set<::cartographer::mapping::TrajectoryBuilderInterface::SensorId>
-  ComputeExpectedSensorIds(const TrajectoryOptions& options) const;
-  int AddTrajectory(const TrajectoryOptions& options);
-  void LaunchSubscribers(const TrajectoryOptions& options, int trajectory_id);
+  ComputeExpectedSensorIds(const cartographer_ros::TrajectoryOptions& options) const;
+  int AddTrajectory(const cartographer_ros::TrajectoryOptions& options);
+  void LaunchSubscribers(const cartographer_ros::TrajectoryOptions& options, int trajectory_id);
   void PublishSubmapList();
-  void AddExtrapolator(int trajectory_id, const TrajectoryOptions& options);
-  void AddSensorSamplers(int trajectory_id, const TrajectoryOptions& options);
+  void AddExtrapolator(int trajectory_id, const cartographer_ros::TrajectoryOptions& options);
+  void AddSensorSamplers(int trajectory_id, const cartographer_ros::TrajectoryOptions& options);
   void PublishLocalTrajectoryData();
   void PublishTrajectoryNodeList();
   void PublishLandmarkPosesList();
   void PublishConstraintList();
-  bool ValidateTrajectoryOptions(const TrajectoryOptions& options);
-  bool ValidateTopicNames(const TrajectoryOptions& options);
+  bool ValidateTrajectoryOptions(const cartographer_ros::TrajectoryOptions& options);
+  bool ValidateTopicNames(const cartographer_ros::TrajectoryOptions& options);
   cartographer_ros_msgs::msg::StatusResponse FinishTrajectoryUnderLock(
       int trajectory_id) EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void MaybeWarnAboutTopicMismatch();
@@ -186,13 +186,13 @@ class Node : public nav2_util::LifecycleNode {
       const std::set<
           cartographer::mapping::PoseGraphInterface::TrajectoryState>&
           valid_states);
-  NodeOptions node_options_;
+  cartographer_ros::NodeOptions node_options_;
 
   cartographer_ros::TrajectoryOptions trajectory_options_;
 
   absl::Mutex mutex_;
   std::unique_ptr<cartographer_ros::metrics::FamilyFactory> metrics_registry_;
-  std::shared_ptr<MapBuilderBridge> map_builder_bridge_ GUARDED_BY(mutex_);
+  std::shared_ptr<cartographer_ros::MapBuilderBridge> map_builder_bridge_ GUARDED_BY(mutex_);
 
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<::cartographer_ros_msgs::msg::SubmapList>> submap_list_publisher_;
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<::visualization_msgs::msg::MarkerArray>> trajectory_node_list_publisher_;
