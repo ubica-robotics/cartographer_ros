@@ -58,6 +58,7 @@ set(srv_files
   "srv/TrajectoryQuery.srv"
   "srv/SubmapQuery.srv"
   "srv/WriteState.srv"
+  "srv/LoadOptions.srv"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

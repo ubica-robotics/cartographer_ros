@@ -172,10 +172,19 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
   // NOTE
   // Now that we are editing the src of carto, I'm planning to create some custom services convenient for us
   // With the objective of simplifying the map and remap routines
-  test_server = create_service<std_srvs::srv::Trigger>(
-      "test_service",
+  runfinaloptimization_server = create_service<std_srvs::srv::Trigger>(
+      "run_final_optimization",
       std::bind(
-          &Node::testcb, this, std::placeholders::_1, std::placeholders::_2));
+          &Node::handleRunFinalOptimization, this, std::placeholders::_1, std::placeholders::_2));
+
+  loadstate_server = create_service<cartographer_ros_msgs::srv::WriteState>(
+      "load_state",
+      std::bind(
+          &Node::handleLoadState, this, std::placeholders::_1, std::placeholders::_2));
+  loadoptions_server = create_service<cartographer_ros_msgs::srv::LoadOptions>(
+      "load_options",
+      std::bind(
+          &Node::handleLoadOptions, this, std::placeholders::_1, std::placeholders::_2));
 
   submap_query_server_ = create_service<cartographer_ros_msgs::srv::SubmapQuery>(
       cartographer_ros::kSubmapQueryServiceName,
@@ -205,10 +214,6 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
       cartographer_ros::kReadMetricsServiceName,
       std::bind(
           &Node::handleReadMetrics, this, std::placeholders::_1, std::placeholders::_2));
-
-  if (!FLAGS_load_state_filename.empty()) {
-    LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);
-  }
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
@@ -250,6 +255,10 @@ nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*st
     [this]() {
       PublishConstraintList();
     });
+
+  if (!FLAGS_load_state_filename.empty()) {
+    LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);
+  }
 
   if (FLAGS_start_trajectory_with_default_topics) {
     StartTrajectoryWithDefaultTopics(trajectory_options_);
@@ -333,8 +342,38 @@ nav2_util::CallbackReturn Node::on_shutdown(const rclcpp_lifecycle::State & /*st
 // NOTE
 // Now that we are editing the src of carto, I'm planning to create some custom services convenient for us
 // With the objective of simplifying the map and remap routines
-bool Node::testcb(std::shared_ptr<std_srvs::srv::Trigger::Request> request, std::shared_ptr<std_srvs::srv::Trigger::Response> response){
-  StartTrajectoryWithDefaultTopics(trajectory_options_);
+bool Node::handleRunFinalOptimization(const std::shared_ptr<std_srvs::srv::Trigger::Request> request, std::shared_ptr<std_srvs::srv::Trigger::Response> response){
+
+
+  FinishAllTrajectories();
+  RunFinalOptimization();
+  return true;
+}
+
+bool Node::handleLoadState(const cartographer_ros_msgs::srv::WriteState::Request::SharedPtr request,
+                           cartographer_ros_msgs::srv::WriteState::Response::SharedPtr response){
+
+  // filename should be actually: FLAGS_load_state_filename
+  // include_unfinished_submaps should be actually: FLAGS_load_frozen_state
+  LoadState(request.get()->filename, request.get()->include_unfinished_submaps);
+
+  return true;
+}
+
+bool Node::handleLoadOptions(const cartographer_ros_msgs::srv::LoadOptions::Request::SharedPtr request, cartographer_ros_msgs::srv::LoadOptions::Response::SharedPtr response){
+  //needed?
+
+  extrapolators_.clear();
+  sensor_samplers_.clear();
+
+  std::tie(node_options_, trajectory_options_) =
+      cartographer_ros::LoadOptions(request.get()->configuration_directory, request.get()->configuration_basename);
+
+  auto map_builder =
+    cartographer::mapping::CreateMapBuilder(node_options_.map_builder_options);
+
+  absl::MutexLock lock(&mutex_);
+  map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), tf_buffer.get()));
   return true;
 }
 

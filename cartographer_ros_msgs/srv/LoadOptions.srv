@@ -1,0 +1,4 @@
+string configuration_directory
+string configuration_basename
+---
+cartographer_ros_msgs/StatusResponse status
