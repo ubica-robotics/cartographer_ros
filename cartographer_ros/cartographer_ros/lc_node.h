@@ -57,7 +57,7 @@
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
 
-namespace cartographer_ros2 {
+namespace cartographer_ros_lifecycle {
 namespace  {
 std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 std::shared_ptr<tf2_ros::Buffer> tf_buffer;
@@ -137,6 +137,9 @@ class Node : public nav2_util::LifecycleNode {
     std::string topic;
   };
 
+  // NOTE
+  // Now that we are editing the src of carto, I'm planning to create some custom services convenient for us
+  // With the objective of simplifying the map and remap routines
   bool testcb(std::shared_ptr<std_srvs::srv::Trigger::Request> request, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
   bool handleSubmapQuery(
@@ -261,6 +264,6 @@ protected:
 
 };
 
-}  // namespace cartographer_ros
+}  // namespace cartographer_ros_lifecycle
 
 #endif  // CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_NODE_H
