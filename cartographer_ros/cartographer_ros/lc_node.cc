@@ -361,7 +361,6 @@ bool Node::handleLoadState(const cartographer_ros_msgs::srv::WriteState::Request
 }
 
 bool Node::handleLoadOptions(const cartographer_ros_msgs::srv::LoadOptions::Request::SharedPtr request, cartographer_ros_msgs::srv::LoadOptions::Response::SharedPtr response){
-  //needed?
 
   extrapolators_.clear();
   sensor_samplers_.clear();
