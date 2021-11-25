@@ -147,7 +147,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
   std::shared_ptr<tf2_ros::Buffer> tf_buffer =
       std::make_shared<tf2_ros::Buffer>(
         cartographer_offline_node->get_clock(),
-        tf2::durationFromSec(10),
+        tf2::durationFromSec(25),
         cartographer_offline_node);
 
   std::vector<geometry_msgs::msg::TransformStamped> urdf_transforms;

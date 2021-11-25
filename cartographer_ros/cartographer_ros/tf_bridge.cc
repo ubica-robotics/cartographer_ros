@@ -45,6 +45,14 @@ std::unique_ptr<::cartographer::transform::Rigid3d> TfBridge::LookupToTracking(
       // We already have newer data, so we do not wait. Otherwise, we would wait
       // for the full 'timeout' even if we ask for data that is too old.
       timeout = tf2::durationFromSec(0.0);
+      LOG(WARNING) << tracking_frame_ << " to " << frame_id << " Got newer data. "
+                      "latest_tf_time " << std::to_string(latest_tf_time.seconds())
+                    << " vs requested_time " << std::to_string(requested_time.seconds());
+    }
+    else {
+      LOG(WARNING) << tracking_frame_ << " to " << frame_id << " No newer data. Timeout of " << lookup_transform_timeout_sec_ <<
+                      "latest_tf_time " << std::to_string(latest_tf_time.seconds())
+                   << " vs requested_time " << std::to_string(requested_time.seconds());;
     }
     return absl::make_unique<::cartographer::transform::Rigid3d>(
         ToRigid3d(buffer_->lookupTransform(tracking_frame_, frame_id,
