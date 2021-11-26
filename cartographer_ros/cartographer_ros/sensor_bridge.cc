@@ -51,6 +51,7 @@ SensorBridge::SensorBridge(
 std::unique_ptr<carto::sensor::OdometryData> SensorBridge::ToOdometryData(
     const nav_msgs::msg::Odometry::ConstSharedPtr& msg) {
   const carto::common::Time time = FromRos(msg->header.stamp);
+  LOG(INFO) << "ToOdometryData" ;
   const auto sensor_to_tracking = tf_bridge_.LookupToTracking(
       time, CheckNoLeadingSlash(msg->child_frame_id));
   if (sensor_to_tracking == nullptr) {
@@ -127,6 +128,7 @@ std::unique_ptr<carto::sensor::ImuData> SensorBridge::ToImuData(
          "requires this data to work. See "
          "http://docs.ros.org/api/sensor_msgs/html/msg/Imu.html.";
 
+  LOG(INFO) << "ToImuData" ;
   const carto::common::Time time = FromRos(msg->header.stamp);
   const auto sensor_to_tracking = tf_bridge_.LookupToTracking(
       time, CheckNoLeadingSlash(msg->header.frame_id));
@@ -233,6 +235,7 @@ void SensorBridge::HandleRangefinder(
   // This was added to get rid of the TimedPointCloudData warning for a missing argument
   std::vector<float> intensities_;
 
+  LOG(INFO) << "HandleRangefinder" ;
   const auto sensor_to_tracking =
       tf_bridge_.LookupToTracking(time, CheckNoLeadingSlash(frame_id));
   if (sensor_to_tracking != nullptr) {

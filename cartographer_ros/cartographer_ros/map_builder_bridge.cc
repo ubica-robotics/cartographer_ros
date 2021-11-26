@@ -248,6 +248,7 @@ MapBuilderBridge::GetLocalTrajectoryData() {
 
     // Make sure there is a trajectory with 'trajectory_id'.
     CHECK_EQ(trajectory_options_.count(trajectory_id), 1);
+    LOG(INFO) << "GetLocalTrajectoryData" ;
     local_trajectory_data[trajectory_id] = {
         local_slam_data,
         map_builder_->pose_graph()->GetLocalToGlobalTransform(trajectory_id),
