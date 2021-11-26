@@ -344,8 +344,6 @@ nav2_util::CallbackReturn Node::on_shutdown(const rclcpp_lifecycle::State & /*st
 // With the objective of simplifying the map and remap routines
 bool Node::handleRunFinalOptimization(const std::shared_ptr<std_srvs::srv::Trigger::Request> request, std::shared_ptr<std_srvs::srv::Trigger::Response> response){
 
-
-  FinishAllTrajectories();
   RunFinalOptimization();
   return true;
 }
