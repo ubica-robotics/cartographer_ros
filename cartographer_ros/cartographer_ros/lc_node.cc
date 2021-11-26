@@ -321,6 +321,10 @@ nav2_util::CallbackReturn Node::on_cleanup(const rclcpp_lifecycle::State & /*sta
   tracked_pose_publisher_.reset();
   scan_matched_point_cloud_publisher_.reset();
 
+  runfinaloptimization_server.reset();
+  loadstate_server.reset();
+  loadoptions_server.reset();
+
   submap_query_server_.reset();
   trajectory_query_server.reset();
   start_trajectory_server_.reset();
