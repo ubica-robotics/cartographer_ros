@@ -60,9 +60,9 @@
 
 namespace cartographer_ros_lifecycle {
 namespace  {
-std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-std::shared_ptr<tf2_ros::Buffer> tf_buffer;
-std::shared_ptr<tf2_ros::TransformListener> tf_listener;
+std::string configuration_directory;
+std::string configuration_basename;
+bool collect_metrics;
 }
 
 
@@ -142,7 +142,7 @@ class Node : public nav2_util::LifecycleNode {
   // Now that we are editing the src of carto, I'm planning to create some custom services convenient for us
   // With the objective of simplifying the map and remap routines
   bool handleRunFinalOptimization(
-      const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+      const std::shared_ptr<std_srvs::srv::Trigger::Request> ,
       std::shared_ptr<std_srvs::srv::Trigger::Response> response);
   bool handleLoadState(
       const cartographer_ros_msgs::srv::WriteState::Request::SharedPtr request,
@@ -150,6 +150,12 @@ class Node : public nav2_util::LifecycleNode {
   bool handleLoadOptions(
       const cartographer_ros_msgs::srv::LoadOptions::Request::SharedPtr request,
       cartographer_ros_msgs::srv::LoadOptions::Response::SharedPtr response);
+  bool handleStartTrajectoryWithDefaultTopics(
+      const std::shared_ptr<std_srvs::srv::Trigger::Request> ,
+      std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+  bool handleFinishAllTrajectories(
+      const std::shared_ptr<std_srvs::srv::Trigger::Request> ,
+      std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
 
   bool handleSubmapQuery(
@@ -199,11 +205,10 @@ class Node : public nav2_util::LifecycleNode {
       const std::set<
           cartographer::mapping::PoseGraphInterface::TrajectoryState>&
           valid_states);
-  cartographer_ros::NodeOptions node_options_;
-
-  cartographer_ros::TrajectoryOptions trajectory_options_;
 
   absl::Mutex mutex_;
+  cartographer_ros::NodeOptions node_options_;
+  cartographer_ros::TrajectoryOptions trajectory_options_;
   std::unique_ptr<cartographer_ros::metrics::FamilyFactory> metrics_registry_;
   std::shared_ptr<cartographer_ros::MapBuilderBridge> map_builder_bridge_ GUARDED_BY(mutex_);
 
@@ -215,9 +220,11 @@ class Node : public nav2_util::LifecycleNode {
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>> scan_matched_point_cloud_publisher_;
 
   // These ros service servers need to live for the lifetime of the node.
-  ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr runfinaloptimization_server;
-  ::rclcpp::Service<cartographer_ros_msgs::srv::WriteState>::SharedPtr loadstate_server;
-  ::rclcpp::Service<cartographer_ros_msgs::srv::LoadOptions>::SharedPtr loadoptions_server;
+  ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr run_final_optimization_server;
+  ::rclcpp::Service<cartographer_ros_msgs::srv::WriteState>::SharedPtr load_state_server;
+  ::rclcpp::Service<cartographer_ros_msgs::srv::LoadOptions>::SharedPtr load_options_server;
+  ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_trajectory_with_default_topics_server;
+  ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr finish_all_trajectories_server;
 
   ::rclcpp::Service<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr submap_query_server_;
   ::rclcpp::Service<cartographer_ros_msgs::srv::TrajectoryQuery>::SharedPtr trajectory_query_server;
@@ -265,6 +272,10 @@ class Node : public nav2_util::LifecycleNode {
   ::rclcpp::TimerBase::SharedPtr landmark_pose_list_timer_;
   ::rclcpp::TimerBase::SharedPtr constrain_list_timer_;
   ::rclcpp::TimerBase::SharedPtr maybe_warn_about_topic_mismatch_timer_;
+
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer;
+  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener;
 
 protected:
 

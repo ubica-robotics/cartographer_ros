@@ -1,4 +1,5 @@
 string configuration_directory
 string configuration_basename
+bool collect_metrics
 ---
 cartographer_ros_msgs/StatusResponse status

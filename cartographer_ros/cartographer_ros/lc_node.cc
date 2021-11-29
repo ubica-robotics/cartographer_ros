@@ -49,28 +49,6 @@
 #include "tf2_eigen/tf2_eigen.h"
 #include "visualization_msgs/msg/marker_array.hpp"
 
-DEFINE_bool(collect_metrics, false,
-            "Activates the collection of runtime metrics. If activated, the "
-            "metrics can be accessed via a ROS service.");
-DEFINE_string(configuration_directory, "",
-              "First directory in which configuration files are searched, "
-              "second is always the Cartographer installation to allow "
-              "including files from there.");
-DEFINE_string(configuration_basename, "",
-              "Basename, i.e. not containing any directory prefix, of the "
-              "configuration file.");
-DEFINE_string(load_state_filename, "",
-              "If non-empty, filename of a .pbstream file to load, containing "
-              "a saved SLAM state.");
-DEFINE_bool(load_frozen_state, true,
-            "Load the saved state as frozen (non-optimized) trajectories.");
-DEFINE_bool(
-    start_trajectory_with_default_topics, true,
-    "Enable to immediately start the first trajectory with default topics.");
-DEFINE_string(
-    save_state_filename, "",
-    "If non-empty, serialize state and write it to disk before shutting down.");
-
 // Log messages
 #define DEBUG (std::cout<<"\033[36;1m")
 #define END "\033[0m" << std::endl
@@ -115,54 +93,77 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state) {
 }  // namespace
 
 Node::Node() : nav2_util::LifecycleNode("cartographer_lc_node","",false){
+
+  declare_parameter<std::string>("configuration_directory",configuration_directory);
+  declare_parameter<std::string>("configuration_basename",configuration_basename);
+  declare_parameter<bool>("collect_metrics",collect_metrics);
+
 }
 
-Node::~Node() {}
+Node::~Node() {
+  submap_list_timer_.reset();
+  local_trajectory_data_timer_.reset();
+  trajectory_node_list_timer_.reset();
+  landmark_pose_list_timer_.reset();
+  constrain_list_timer_.reset();
+  maybe_warn_about_topic_mismatch_timer_.reset();
+
+  map_builder_bridge_.reset();
+  tf_buffer.reset();
+  tf_listener.reset();
+  tf_broadcaster_.reset();
+
+  metrics_registry_.reset();
+
+  run_final_optimization_server.reset();
+  load_state_server.reset();
+  load_options_server.reset();
+  finish_all_trajectories_server.reset();
+  start_trajectory_with_default_topics_server.reset();
+
+  submap_query_server_.reset();
+  trajectory_query_server.reset();
+  start_trajectory_server_.reset();
+  finish_trajectory_server_.reset();
+  write_state_server_.reset();
+  get_trajectory_states_server_.reset();
+  read_metrics_server_.reset();
+
+  submap_list_publisher_.reset();
+  trajectory_node_list_publisher_.reset();
+  landmark_poses_list_publisher_.reset();
+  constraint_list_publisher_.reset();
+  tracked_pose_publisher_.reset();
+  scan_matched_point_cloud_publisher_.reset();
+}
 
 nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*state*/){
 
-  CHECK(!FLAGS_configuration_directory.empty())
+  CHECK(!configuration_directory.empty())
       << "-configuration_directory is missing.";
-  CHECK(!FLAGS_configuration_basename.empty())
+  CHECK(!configuration_basename.empty())
       << "-configuration_basename is missing.";
 
-  std::tie(node_options_, trajectory_options_) =
-      cartographer_ros::LoadOptions(FLAGS_configuration_directory, FLAGS_configuration_basename);
-
-  auto map_builder =
-    cartographer::mapping::CreateMapBuilder(node_options_.map_builder_options);
-
-
-  constexpr double kTfBufferCacheTimeInSeconds = 10.;
-  tf_buffer = std::make_shared<tf2_ros::Buffer>(get_clock(),tf2::durationFromSec(kTfBufferCacheTimeInSeconds));
-  tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
-  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
-
-
-  absl::MutexLock lock(&mutex_);
-  map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), tf_buffer.get()));
-
-  if (FLAGS_collect_metrics) {
-    metrics_registry_ = absl::make_unique<cartographer_ros::metrics::FamilyFactory>();
-    carto::metrics::RegisterAllMetrics(metrics_registry_.get());
-  }
+  get_parameter("configuration_directory",configuration_directory);
+  get_parameter("configuration_basename",configuration_basename);
+  get_parameter_or("collect_metrics",collect_metrics,false);
 
   submap_list_publisher_ =
       create_publisher<::cartographer_ros_msgs::msg::SubmapList>(
-          cartographer_ros::kSubmapListTopic, 10);
+        cartographer_ros::kSubmapListTopic, 10);
   trajectory_node_list_publisher_ =
       create_publisher<::visualization_msgs::msg::MarkerArray>(
-          cartographer_ros::kTrajectoryNodeListTopic, 10);
+        cartographer_ros::kTrajectoryNodeListTopic, 10);
   landmark_poses_list_publisher_ =
       create_publisher<::visualization_msgs::msg::MarkerArray>(
-          cartographer_ros::kLandmarkPosesListTopic, 10);
+        cartographer_ros::kLandmarkPosesListTopic, 10);
   constraint_list_publisher_ =
       create_publisher<::visualization_msgs::msg::MarkerArray>(
-          cartographer_ros::kConstraintListTopic, 10);
+        cartographer_ros::kConstraintListTopic, 10);
   if (node_options_.publish_tracked_pose) {
     tracked_pose_publisher_ =
         create_publisher<::geometry_msgs::msg::PoseStamped>(
-            cartographer_ros::kTrackedPoseTopic, 10);
+          cartographer_ros::kTrackedPoseTopic, 10);
   }
 
   scan_matched_point_cloud_publisher_ =
@@ -172,53 +173,78 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
   // NOTE
   // Now that we are editing the src of carto, I'm planning to create some custom services convenient for us
   // With the objective of simplifying the map and remap routines
-  runfinaloptimization_server = create_service<std_srvs::srv::Trigger>(
-      "run_final_optimization",
-      std::bind(
+  run_final_optimization_server = create_service<std_srvs::srv::Trigger>(
+        cartographer_ros::kRunFinalOptimizationServiceName,
+        std::bind(
           &Node::handleRunFinalOptimization, this, std::placeholders::_1, std::placeholders::_2));
-
-  loadstate_server = create_service<cartographer_ros_msgs::srv::WriteState>(
-      "load_state",
-      std::bind(
+  load_state_server = create_service<cartographer_ros_msgs::srv::WriteState>(
+        cartographer_ros::kLoadStateServiceName,
+        std::bind(
           &Node::handleLoadState, this, std::placeholders::_1, std::placeholders::_2));
-  loadoptions_server = create_service<cartographer_ros_msgs::srv::LoadOptions>(
-      "load_options",
-      std::bind(
+  load_options_server = create_service<cartographer_ros_msgs::srv::LoadOptions>(
+        cartographer_ros::kLoadOptionsServiceName,
+        std::bind(
           &Node::handleLoadOptions, this, std::placeholders::_1, std::placeholders::_2));
+  start_trajectory_with_default_topics_server = create_service<std_srvs::srv::Trigger>(
+        cartographer_ros::kStartTrajectoryWithDefaultTopicsServiceName,
+        std::bind(&Node::handleStartTrajectoryWithDefaultTopics,this,std::placeholders::_1, std::placeholders::_2));
+  finish_all_trajectories_server = create_service<std_srvs::srv::Trigger>(
+        cartographer_ros::kFinishAllTrajectoriesServiceName,
+        std::bind(&Node::handleFinishAllTrajectories,this,std::placeholders::_1, std::placeholders::_2));
 
   submap_query_server_ = create_service<cartographer_ros_msgs::srv::SubmapQuery>(
-      cartographer_ros::kSubmapQueryServiceName,
-      std::bind(
+        cartographer_ros::kSubmapQueryServiceName,
+        std::bind(
           &Node::handleSubmapQuery, this, std::placeholders::_1, std::placeholders::_2));
   trajectory_query_server = create_service<cartographer_ros_msgs::srv::TrajectoryQuery>(
-      cartographer_ros::kTrajectoryQueryServiceName,
-      std::bind(
+        cartographer_ros::kTrajectoryQueryServiceName,
+        std::bind(
           &Node::handleTrajectoryQuery, this, std::placeholders::_1, std::placeholders::_2));
   start_trajectory_server_ = create_service<cartographer_ros_msgs::srv::StartTrajectory>(
-      cartographer_ros::kStartTrajectoryServiceName,
-      std::bind(
+        cartographer_ros::kStartTrajectoryServiceName,
+        std::bind(
           &Node::handleStartTrajectory, this, std::placeholders::_1, std::placeholders::_2));
   finish_trajectory_server_ = create_service<cartographer_ros_msgs::srv::FinishTrajectory>(
-      cartographer_ros::kFinishTrajectoryServiceName,
-      std::bind(
+        cartographer_ros::kFinishTrajectoryServiceName,
+        std::bind(
           &Node::handleFinishTrajectory, this, std::placeholders::_1, std::placeholders::_2));
   write_state_server_ = create_service<cartographer_ros_msgs::srv::WriteState>(
-      cartographer_ros::kWriteStateServiceName,
-      std::bind(
+        cartographer_ros::kWriteStateServiceName,
+        std::bind(
           &Node::handleWriteState, this, std::placeholders::_1, std::placeholders::_2));
   get_trajectory_states_server_ = create_service<cartographer_ros_msgs::srv::GetTrajectoryStates>(
-      cartographer_ros::kGetTrajectoryStatesServiceName,
-      std::bind(
+        cartographer_ros::kGetTrajectoryStatesServiceName,
+        std::bind(
           &Node::handleGetTrajectoryStates, this, std::placeholders::_1, std::placeholders::_2));
   read_metrics_server_ = create_service<cartographer_ros_msgs::srv::ReadMetrics>(
-      cartographer_ros::kReadMetricsServiceName,
-      std::bind(
+        cartographer_ros::kReadMetricsServiceName,
+        std::bind(
           &Node::handleReadMetrics, this, std::placeholders::_1, std::placeholders::_2));
+
+  // Always registering metrics!
+  if (collect_metrics){
+    metrics_registry_ = absl::make_unique<cartographer_ros::metrics::FamilyFactory>();
+    carto::metrics::RegisterAllMetrics(metrics_registry_.get());
+  }
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
 nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*state*/){
+
+  std::tie(node_options_, trajectory_options_) =
+      cartographer_ros::LoadOptions(configuration_directory, configuration_basename);
+
+  auto map_builder =
+    cartographer::mapping::CreateMapBuilder(node_options_.map_builder_options);
+
+  constexpr double kTfBufferCacheTimeInSeconds = 10.;
+  tf_buffer = std::make_shared<tf2_ros::Buffer>(get_clock(),tf2::durationFromSec(kTfBufferCacheTimeInSeconds));
+  tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+
+  absl::MutexLock lock(&mutex_);
+  map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), tf_buffer.get()));
 
   submap_list_publisher_->on_activate();
   trajectory_node_list_publisher_->on_activate();
@@ -256,20 +282,19 @@ nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*st
       PublishConstraintList();
     });
 
-  if (!FLAGS_load_state_filename.empty()) {
-    LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);
-  }
-
-  if (FLAGS_start_trajectory_with_default_topics) {
-    StartTrajectoryWithDefaultTopics(trajectory_options_);
-  }
-
  createBond();
 
  return nav2_util::CallbackReturn::SUCCESS;
 }
 
 nav2_util::CallbackReturn Node::on_deactivate(const rclcpp_lifecycle::State & /*state*/){
+
+  submap_list_timer_->cancel();
+  local_trajectory_data_timer_->cancel();
+  trajectory_node_list_timer_->cancel();
+  landmark_pose_list_timer_->cancel();
+  constrain_list_timer_->cancel();
+  maybe_warn_about_topic_mismatch_timer_->cancel();
 
   submap_list_publisher_->on_deactivate();
   trajectory_node_list_publisher_->on_deactivate();
@@ -279,19 +304,17 @@ nav2_util::CallbackReturn Node::on_deactivate(const rclcpp_lifecycle::State & /*
     tracked_pose_publisher_->on_deactivate();}
   scan_matched_point_cloud_publisher_->on_deactivate();
 
-  submap_list_timer_->cancel();
-  local_trajectory_data_timer_->cancel();
-  trajectory_node_list_timer_->cancel();
-  landmark_pose_list_timer_->cancel();
-  constrain_list_timer_->cancel();
+  tf_buffer->clear();
 
-  FinishAllTrajectories();
-  RunFinalOptimization();
+  extrapolators_.clear();
+  last_published_tf_stamps_.clear();
+  sensor_samplers_.clear();
+  subscribers_.clear();
+  subscribed_topics_.clear();
+  trajectories_scheduled_for_finish_.clear();
 
-  if (!FLAGS_save_state_filename.empty()) {
-    SerializeState(FLAGS_save_state_filename,
-                        true /* include_unfinished_submaps */);
-  }
+  node_options_=cartographer_ros::NodeOptions();
+  trajectory_options_=cartographer_ros::TrajectoryOptions();
 
   destroyBond();
 
@@ -300,30 +323,27 @@ nav2_util::CallbackReturn Node::on_deactivate(const rclcpp_lifecycle::State & /*
 
 nav2_util::CallbackReturn Node::on_cleanup(const rclcpp_lifecycle::State & /*state*/){
 
-  cartographer_ros::NodeOptions node_options;
-  cartographer_ros::TrajectoryOptions trajectory_options;
+  submap_list_timer_.reset();
+  local_trajectory_data_timer_.reset();
+  trajectory_node_list_timer_.reset();
+  landmark_pose_list_timer_.reset();
+  constrain_list_timer_.reset();
+  maybe_warn_about_topic_mismatch_timer_.reset();
 
-  node_options_=node_options;
-  trajectory_options_=trajectory_options;
-  extrapolators_.clear();
-  sensor_samplers_.clear();
-  subscribers_.clear();
-
-  tf_buffer->clear();
+  absl::MutexLock lock(&mutex_);
+  map_builder_bridge_.reset();
   tf_buffer.reset();
   tf_listener.reset();
   tf_broadcaster_.reset();
 
-  submap_list_publisher_.reset();
-  trajectory_node_list_publisher_.reset();
-  landmark_poses_list_publisher_.reset();
-  constraint_list_publisher_.reset();
-  tracked_pose_publisher_.reset();
-  scan_matched_point_cloud_publisher_.reset();
+  metrics_registry_.reset();
 
-  runfinaloptimization_server.reset();
-  loadstate_server.reset();
-  loadoptions_server.reset();
+  run_final_optimization_server.reset();
+  load_state_server.reset();
+  load_options_server.reset();
+  start_trajectory_with_default_topics_server.reset();
+  finish_all_trajectories_server.reset();
+
 
   submap_query_server_.reset();
   trajectory_query_server.reset();
@@ -333,12 +353,17 @@ nav2_util::CallbackReturn Node::on_cleanup(const rclcpp_lifecycle::State & /*sta
   get_trajectory_states_server_.reset();
   read_metrics_server_.reset();
 
+  submap_list_publisher_.reset();
+  trajectory_node_list_publisher_.reset();
+  landmark_poses_list_publisher_.reset();
+  constraint_list_publisher_.reset();
+  tracked_pose_publisher_.reset();
+  scan_matched_point_cloud_publisher_.reset();
+
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
 nav2_util::CallbackReturn Node::on_shutdown(const rclcpp_lifecycle::State & /*state*/){
-
-  FinishAllTrajectories();
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
@@ -346,35 +371,80 @@ nav2_util::CallbackReturn Node::on_shutdown(const rclcpp_lifecycle::State & /*st
 // NOTE
 // Now that we are editing the src of carto, I'm planning to create some custom services convenient for us
 // With the objective of simplifying the map and remap routines
-bool Node::handleRunFinalOptimization(const std::shared_ptr<std_srvs::srv::Trigger::Request> request, std::shared_ptr<std_srvs::srv::Trigger::Response> response){
+bool Node::handleRunFinalOptimization(const std::shared_ptr<std_srvs::srv::Trigger::Request> , std::shared_ptr<std_srvs::srv::Trigger::Response> response){
+
+  if (get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+      RCLCPP_WARN(
+        get_logger(),
+        "Received RunFinalOptimization request but not in ACTIVE state, ignoring!");
+      return false;
+    }
 
   RunFinalOptimization();
+
+  response->success=true;
   return true;
 }
 
 bool Node::handleLoadState(const cartographer_ros_msgs::srv::WriteState::Request::SharedPtr request,
                            cartographer_ros_msgs::srv::WriteState::Response::SharedPtr response){
 
+  if (get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+      RCLCPP_WARN(
+        get_logger(),
+        "Received LoadState request but not in ACTIVE state, ignoring!");
+      return false;
+    }
+
   // filename should be actually: FLAGS_load_state_filename
   // include_unfinished_submaps should be actually: FLAGS_load_frozen_state
   LoadState(request.get()->filename, request.get()->include_unfinished_submaps);
 
+  response->status.code = cartographer_ros_msgs::msg::StatusCode::OK;
   return true;
 }
 
 bool Node::handleLoadOptions(const cartographer_ros_msgs::srv::LoadOptions::Request::SharedPtr request, cartographer_ros_msgs::srv::LoadOptions::Response::SharedPtr response){
 
-  extrapolators_.clear();
-  sensor_samplers_.clear();
+  // Only srv that can be call when the node isn't active
 
-  std::tie(node_options_, trajectory_options_) =
-      cartographer_ros::LoadOptions(request.get()->configuration_directory, request.get()->configuration_basename);
+  configuration_directory=request.get()->configuration_directory;
+  configuration_basename=request.get()->configuration_basename;
+  collect_metrics = request.get()->collect_metrics;
 
-  auto map_builder =
-    cartographer::mapping::CreateMapBuilder(node_options_.map_builder_options);
+  RCLCPP_WARN(get_logger(),"A transition to INACTIVE and then back to ACTIVE state is needed apply the new options loaded");
 
-  absl::MutexLock lock(&mutex_);
-  map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), tf_buffer.get()));
+  response->status.code = cartographer_ros_msgs::msg::StatusCode::OK;
+  return true;
+}
+
+bool Node::handleStartTrajectoryWithDefaultTopics(const std::shared_ptr<std_srvs::srv::Trigger::Request> , std::shared_ptr<std_srvs::srv::Trigger::Response> response){
+
+  if (get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+      RCLCPP_WARN(
+        get_logger(),
+        "Received StartTrajectoryWithDefaultTopics request but not in ACTIVE state, ignoring!");
+      return false;
+    }
+
+  StartTrajectoryWithDefaultTopics(trajectory_options_);
+
+  response->success=true;
+  return true;
+}
+
+bool Node::handleFinishAllTrajectories(const std::shared_ptr<std_srvs::srv::Trigger::Request> , std::shared_ptr<std_srvs::srv::Trigger::Response> response){
+
+  if (get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+      RCLCPP_WARN(
+        get_logger(),
+        "Received FinishAllTrajectories request but not in ACTIVE state, ignoring!");
+      return false;
+    }
+
+  FinishAllTrajectories();
+
+  response->success=true;
   return true;
 }
 
@@ -1119,7 +1189,7 @@ int main(int argc, char** argv) {
 
   google::AllowCommandLineReparsing();
   google::InitGoogleLogging(argv[0]);
-  google::ParseCommandLineFlags(&argc, &argv, false);
+//  google::ParseCommandLineFlags(&argc, &argv, false);
 
   cartographer_ros::ScopedRosLogSink ros_log_sink;
 

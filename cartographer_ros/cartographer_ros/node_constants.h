@@ -35,12 +35,19 @@ constexpr char kOccupancyGridTopic[] = "map";
 constexpr char kScanMatchedPointCloudTopic[] = "scan_matched_points2";
 constexpr char kSubmapListTopic[] = "submap_list";
 constexpr char kTrackedPoseTopic[] = "tracked_pose";
+
 constexpr char kSubmapQueryServiceName[] = "submap_query";
 constexpr char kTrajectoryQueryServiceName[] = "trajectory_query";
 constexpr char kStartTrajectoryServiceName[] = "start_trajectory";
 constexpr char kWriteStateServiceName[] = "write_state";
 constexpr char kGetTrajectoryStatesServiceName[] = "get_trajectory_states";
 constexpr char kReadMetricsServiceName[] = "read_metrics";
+constexpr char kFinishAllTrajectoriesServiceName[] = "finish_all_trajectories";
+constexpr char kStartTrajectoryWithDefaultTopicsServiceName[] = "start_trajectory_with_default_topics";
+constexpr char kLoadOptionsServiceName[] = "load_options";
+constexpr char kLoadStateServiceName[] = "load_state";
+constexpr char kRunFinalOptimizationServiceName[] = "run_final_optimization";
+
 constexpr char kTrajectoryNodeListTopic[] = "trajectory_node_list";
 constexpr char kLandmarkPosesListTopic[] = "landmark_poses_list";
 constexpr char kConstraintListTopic[] = "constraint_list";
