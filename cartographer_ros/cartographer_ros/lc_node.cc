@@ -140,15 +140,18 @@ Node::~Node() {
 
 nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*state*/){
 
-  CHECK(!configuration_directory.empty())
-      << "-configuration_directory is missing.";
-  CHECK(!configuration_basename.empty())
-      << "-configuration_basename is missing.";
-
   get_parameter("configuration_directory",configuration_directory);
   get_parameter("configuration_basename",configuration_basename);
   get_parameter_or("collect_metrics",collect_metrics,false);
   get_parameter_or("start_trajectory_with_default_topics",start_trajectory_with_default_topics,true);
+
+  DEBUG<<configuration_directory<<END;
+  DEBUG<<configuration_basename<<END;
+
+  CHECK(!configuration_directory.empty())
+      << "-configuration_directory is missing.";
+  CHECK(!configuration_basename.empty())
+      << "-configuration_basename is missing.";
 
   submap_list_publisher_ =
       create_publisher<::cartographer_ros_msgs::msg::SubmapList>(
@@ -233,21 +236,21 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
 }
 
 nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*state*/){
-
+  DEBUG<<"1"<<END;
   std::tie(node_options_, trajectory_options_) =
       cartographer_ros::LoadOptions(configuration_directory, configuration_basename);
-
+  DEBUG<<"2"<<END;
   auto map_builder =
     cartographer::mapping::CreateMapBuilder(node_options_.map_builder_options);
-
+  DEBUG<<"3"<<END;
   constexpr double kTfBufferCacheTimeInSeconds = 10.;
   tf_buffer = std::make_shared<tf2_ros::Buffer>(get_clock(),tf2::durationFromSec(kTfBufferCacheTimeInSeconds));
   tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
-
+  DEBUG<<"4"<<END;
   absl::MutexLock lock(&mutex_);
   map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), tf_buffer.get()));
-
+DEBUG<<"5"<<END;
   submap_list_publisher_->on_activate();
   trajectory_node_list_publisher_->on_activate();
   landmark_poses_list_publisher_->on_activate();
@@ -255,7 +258,7 @@ nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*st
   if (node_options_.publish_tracked_pose) {
     tracked_pose_publisher_->on_activate();}
   scan_matched_point_cloud_publisher_->on_activate();
-
+DEBUG<<"6"<<END;
   submap_list_timer_ = create_wall_timer(
     std::chrono::milliseconds(int(node_options_.submap_publish_period_sec * 1000)),
     [this]() {
@@ -283,11 +286,12 @@ nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*st
     [this]() {
       PublishConstraintList();
     });
-
-  if (start_trajectory_with_default_topics){
-    StartTrajectoryWithDefaultTopics(trajectory_options_);
-  }
-
+DEBUG<<"7"<<END;
+  //if (start_trajectory_with_default_topics){
+    //DEBUG<<"7.1"<<END;
+    //StartTrajectoryWithDefaultTopics(trajectory_options_);
+  //}
+DEBUG<<"8"<<END;
   createBond();
 
   return nav2_util::CallbackReturn::SUCCESS;
@@ -691,6 +695,7 @@ int Node::AddTrajectory(const cartographer_ros::TrajectoryOptions& options) {
       expected_sensor_ids = ComputeExpectedSensorIds(options);
   const int trajectory_id =
       map_builder_bridge_->AddTrajectory(expected_sensor_ids, options);
+  DEBUG<<"100"<<END;
   AddExtrapolator(trajectory_id, options);
   AddSensorSamplers(trajectory_id, options);
   LaunchSubscribers(options, trajectory_id);
@@ -911,8 +916,11 @@ bool Node::handleStartTrajectory(
 }
 
 void Node::StartTrajectoryWithDefaultTopics(const cartographer_ros::TrajectoryOptions& options) {
+  DEBUG<<"7.2"<<END;
   absl::MutexLock lock(&mutex_);
+  DEBUG<<"7.3"<<END;
   CHECK(ValidateTrajectoryOptions(options));
+  DEBUG<<"7.4"<<END;
   AddTrajectory(options);
 }
 
