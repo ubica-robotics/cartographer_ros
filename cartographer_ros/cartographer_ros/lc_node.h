@@ -63,6 +63,7 @@ namespace  {
 std::string configuration_directory;
 std::string configuration_basename;
 bool collect_metrics;
+bool start_trajectory_with_default_topics;
 }
 
 

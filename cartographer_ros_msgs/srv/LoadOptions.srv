@@ -1,5 +1,6 @@
 string configuration_directory
 string configuration_basename
 bool collect_metrics
+bool start_trajectory_with_default_topics
 ---
 cartographer_ros_msgs/StatusResponse status

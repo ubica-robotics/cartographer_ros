@@ -94,9 +94,10 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state) {
 
 Node::Node() : nav2_util::LifecycleNode("cartographer_lc_node","",false){
 
-  declare_parameter<std::string>("configuration_directory",configuration_directory);
-  declare_parameter<std::string>("configuration_basename",configuration_basename);
-  declare_parameter<bool>("collect_metrics",collect_metrics);
+  declare_parameter<std::string>("configuration_directory",cartographer_ros_lifecycle::configuration_directory);
+  declare_parameter<std::string>("configuration_basename",cartographer_ros_lifecycle::configuration_basename);
+  declare_parameter<bool>("collect_metrics",cartographer_ros_lifecycle::collect_metrics);
+  declare_parameter<bool>("start_trajectory_with_default_topics", cartographer_ros_lifecycle::start_trajectory_with_default_topics);
 
 }
 
@@ -147,6 +148,7 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
   get_parameter("configuration_directory",configuration_directory);
   get_parameter("configuration_basename",configuration_basename);
   get_parameter_or("collect_metrics",collect_metrics,false);
+  get_parameter_or("start_trajectory_with_default_topics",start_trajectory_with_default_topics,true);
 
   submap_list_publisher_ =
       create_publisher<::cartographer_ros_msgs::msg::SubmapList>(
@@ -282,9 +284,13 @@ nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*st
       PublishConstraintList();
     });
 
- createBond();
+  if (start_trajectory_with_default_topics){
+    StartTrajectoryWithDefaultTopics(trajectory_options_);
+  }
 
- return nav2_util::CallbackReturn::SUCCESS;
+  createBond();
+
+  return nav2_util::CallbackReturn::SUCCESS;
 }
 
 nav2_util::CallbackReturn Node::on_deactivate(const rclcpp_lifecycle::State & /*state*/){
@@ -380,6 +386,7 @@ bool Node::handleRunFinalOptimization(const std::shared_ptr<std_srvs::srv::Trigg
       return false;
     }
 
+  // This blocks
   RunFinalOptimization();
 
   response->success=true;
@@ -411,6 +418,7 @@ bool Node::handleLoadOptions(const cartographer_ros_msgs::srv::LoadOptions::Requ
   configuration_directory=request.get()->configuration_directory;
   configuration_basename=request.get()->configuration_basename;
   collect_metrics = request.get()->collect_metrics;
+  start_trajectory_with_default_topics = request.get()->start_trajectory_with_default_topics;
 
   RCLCPP_WARN(get_logger(),"A transition to INACTIVE and then back to ACTIVE state is needed apply the new options loaded");
 
