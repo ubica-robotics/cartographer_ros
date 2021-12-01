@@ -63,7 +63,6 @@ namespace  {
 std::string configuration_directory;
 std::string configuration_basename;
 bool collect_metrics;
-bool start_trajectory_with_default_topics;
 }
 
 
@@ -139,9 +138,7 @@ class Node : public nav2_util::LifecycleNode {
     std::string topic;
   };
 
-  // NOTE
-  // Now that we are editing the src of carto, I'm planning to create some custom services convenient for us
-  // With the objective of simplifying the map and remap routines
+  // [Experimental] New services exposed
   bool handleRunFinalOptimization(
       const std::shared_ptr<std_srvs::srv::Trigger::Request> ,
       std::shared_ptr<std_srvs::srv::Trigger::Response> response);
@@ -220,13 +217,14 @@ class Node : public nav2_util::LifecycleNode {
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>> tracked_pose_publisher_;
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>> scan_matched_point_cloud_publisher_;
 
-  // These ros service servers need to live for the lifetime of the node.
+  // [Experimental] New services exposed
   ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr run_final_optimization_server;
   ::rclcpp::Service<cartographer_ros_msgs::srv::WriteState>::SharedPtr load_state_server;
   ::rclcpp::Service<cartographer_ros_msgs::srv::LoadOptions>::SharedPtr load_options_server;
   ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_trajectory_with_default_topics_server;
   ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr finish_all_trajectories_server;
 
+  // These ros service servers need to live for the lifetime of the node.
   ::rclcpp::Service<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr submap_query_server_;
   ::rclcpp::Service<cartographer_ros_msgs::srv::TrajectoryQuery>::SharedPtr trajectory_query_server;
   ::rclcpp::Service<cartographer_ros_msgs::srv::StartTrajectory>::SharedPtr start_trajectory_server_;
@@ -285,8 +283,6 @@ protected:
   nav2_util::CallbackReturn on_deactivate(const rclcpp_lifecycle::State & state) override;
   nav2_util::CallbackReturn on_cleanup(const rclcpp_lifecycle::State & state) override;
   nav2_util::CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state) override;
-
-
 };
 
 }  // namespace cartographer_ros_lifecycle

@@ -97,7 +97,6 @@ Node::Node() : nav2_util::LifecycleNode("cartographer_lc_node","",false){
   declare_parameter<std::string>("configuration_directory",cartographer_ros_lifecycle::configuration_directory);
   declare_parameter<std::string>("configuration_basename",cartographer_ros_lifecycle::configuration_basename);
   declare_parameter<bool>("collect_metrics",cartographer_ros_lifecycle::collect_metrics);
-  declare_parameter<bool>("start_trajectory_with_default_topics", cartographer_ros_lifecycle::start_trajectory_with_default_topics);
 
 }
 
@@ -143,10 +142,6 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
   get_parameter("configuration_directory",configuration_directory);
   get_parameter("configuration_basename",configuration_basename);
   get_parameter_or("collect_metrics",collect_metrics,false);
-  get_parameter_or("start_trajectory_with_default_topics",start_trajectory_with_default_topics,true);
-
-  DEBUG<<configuration_directory<<END;
-  DEBUG<<configuration_basename<<END;
 
   CHECK(!configuration_directory.empty())
       << "-configuration_directory is missing.";
@@ -175,9 +170,7 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
       create_publisher<sensor_msgs::msg::PointCloud2>(
         cartographer_ros::kScanMatchedPointCloudTopic, 10);
 
-  // NOTE
-  // Now that we are editing the src of carto, I'm planning to create some custom services convenient for us
-  // With the objective of simplifying the map and remap routines
+  // [Experimental] New services exposed
   run_final_optimization_server = create_service<std_srvs::srv::Trigger>(
         cartographer_ros::kRunFinalOptimizationServiceName,
         std::bind(
@@ -196,6 +189,7 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
   finish_all_trajectories_server = create_service<std_srvs::srv::Trigger>(
         cartographer_ros::kFinishAllTrajectoriesServiceName,
         std::bind(&Node::handleFinishAllTrajectories,this,std::placeholders::_1, std::placeholders::_2));
+
 
   submap_query_server_ = create_service<cartographer_ros_msgs::srv::SubmapQuery>(
         cartographer_ros::kSubmapQueryServiceName,
@@ -226,7 +220,6 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
         std::bind(
           &Node::handleReadMetrics, this, std::placeholders::_1, std::placeholders::_2));
 
-  // Always registering metrics!
   if (collect_metrics){
     metrics_registry_ = absl::make_unique<cartographer_ros::metrics::FamilyFactory>();
     carto::metrics::RegisterAllMetrics(metrics_registry_.get());
@@ -236,21 +229,21 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
 }
 
 nav2_util::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State & /*state*/){
-  DEBUG<<"1"<<END;
+
   std::tie(node_options_, trajectory_options_) =
       cartographer_ros::LoadOptions(configuration_directory, configuration_basename);
-  DEBUG<<"2"<<END;
+
   auto map_builder =
     cartographer::mapping::CreateMapBuilder(node_options_.map_builder_options);
-  DEBUG<<"3"<<END;
+
   constexpr double kTfBufferCacheTimeInSeconds = 10.;
   tf_buffer = std::make_shared<tf2_ros::Buffer>(get_clock(),tf2::durationFromSec(kTfBufferCacheTimeInSeconds));
   tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
-  DEBUG<<"4"<<END;
+
   absl::MutexLock lock(&mutex_);
   map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), tf_buffer.get()));
-DEBUG<<"5"<<END;
+
   submap_list_publisher_->on_activate();
   trajectory_node_list_publisher_->on_activate();
   landmark_poses_list_publisher_->on_activate();
@@ -258,7 +251,7 @@ DEBUG<<"5"<<END;
   if (node_options_.publish_tracked_pose) {
     tracked_pose_publisher_->on_activate();}
   scan_matched_point_cloud_publisher_->on_activate();
-DEBUG<<"6"<<END;
+
   submap_list_timer_ = create_wall_timer(
     std::chrono::milliseconds(int(node_options_.submap_publish_period_sec * 1000)),
     [this]() {
@@ -286,12 +279,7 @@ DEBUG<<"6"<<END;
     [this]() {
       PublishConstraintList();
     });
-DEBUG<<"7"<<END;
-  //if (start_trajectory_with_default_topics){
-    //DEBUG<<"7.1"<<END;
-    //StartTrajectoryWithDefaultTopics(trajectory_options_);
-  //}
-DEBUG<<"8"<<END;
+
   createBond();
 
   return nav2_util::CallbackReturn::SUCCESS;
@@ -378,9 +366,7 @@ nav2_util::CallbackReturn Node::on_shutdown(const rclcpp_lifecycle::State & /*st
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
-// NOTE
-// Now that we are editing the src of carto, I'm planning to create some custom services convenient for us
-// With the objective of simplifying the map and remap routines
+// [Experimental] New services exposed
 bool Node::handleRunFinalOptimization(const std::shared_ptr<std_srvs::srv::Trigger::Request> , std::shared_ptr<std_srvs::srv::Trigger::Response> response){
 
   if (get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
@@ -417,13 +403,13 @@ bool Node::handleLoadState(const cartographer_ros_msgs::srv::WriteState::Request
 
 bool Node::handleLoadOptions(const cartographer_ros_msgs::srv::LoadOptions::Request::SharedPtr request, cartographer_ros_msgs::srv::LoadOptions::Response::SharedPtr response){
 
-  // Only srv that can be call when the node isn't active
+  // Only srv that can be called when the node isn't active
 
   configuration_directory=request.get()->configuration_directory;
   configuration_basename=request.get()->configuration_basename;
   collect_metrics = request.get()->collect_metrics;
-  start_trajectory_with_default_topics = request.get()->start_trajectory_with_default_topics;
 
+  // WE must go through on_deactivate to clean the system and then on_activate to create a new instance with the options loaded
   RCLCPP_WARN(get_logger(),"A transition to INACTIVE and then back to ACTIVE state is needed apply the new options loaded");
 
   response->status.code = cartographer_ros_msgs::msg::StatusCode::OK;
@@ -454,11 +440,13 @@ bool Node::handleFinishAllTrajectories(const std::shared_ptr<std_srvs::srv::Trig
       return false;
     }
 
+  // This doesn't block so checking the metrics is neccessary to know when it finishes
   FinishAllTrajectories();
 
   response->success=true;
   return true;
 }
+
 
 bool Node::handleSubmapQuery(
     const cartographer_ros_msgs::srv::SubmapQuery::Request::SharedPtr request,
@@ -695,7 +683,7 @@ int Node::AddTrajectory(const cartographer_ros::TrajectoryOptions& options) {
       expected_sensor_ids = ComputeExpectedSensorIds(options);
   const int trajectory_id =
       map_builder_bridge_->AddTrajectory(expected_sensor_ids, options);
-  DEBUG<<"100"<<END;
+
   AddExtrapolator(trajectory_id, options);
   AddSensorSamplers(trajectory_id, options);
   LaunchSubscribers(options, trajectory_id);
@@ -916,11 +904,10 @@ bool Node::handleStartTrajectory(
 }
 
 void Node::StartTrajectoryWithDefaultTopics(const cartographer_ros::TrajectoryOptions& options) {
-  DEBUG<<"7.2"<<END;
+
   absl::MutexLock lock(&mutex_);
-  DEBUG<<"7.3"<<END;
   CHECK(ValidateTrajectoryOptions(options));
-  DEBUG<<"7.4"<<END;
+
   AddTrajectory(options);
 }
 
@@ -1205,7 +1192,6 @@ int main(int argc, char** argv) {
 
   google::AllowCommandLineReparsing();
   google::InitGoogleLogging(argv[0]);
-//  google::ParseCommandLineFlags(&argc, &argv, false);
 
   cartographer_ros::ScopedRosLogSink ros_log_sink;
 
