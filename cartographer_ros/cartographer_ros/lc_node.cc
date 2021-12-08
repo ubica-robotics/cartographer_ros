@@ -129,6 +129,9 @@ Node::~Node() {
   get_trajectory_states_server_.reset();
   read_metrics_server_.reset();
 
+  callback_group_executor.cancel();
+  callback_group_executor_thread.join();
+
   submap_list_publisher_.reset();
   trajectory_node_list_publisher_.reset();
   landmark_poses_list_publisher_.reset();
@@ -147,6 +150,14 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
       << "-configuration_directory is missing.";
   CHECK(!configuration_basename.empty())
       << "-configuration_basename is missing.";
+
+  // Init callback group and spin it in a dedicated thread
+  sync_srv_client_callback_group = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false);
+
+  callback_group_executor_thread = std::thread([this]() {
+    callback_group_executor.add_callback_group(sync_srv_client_callback_group, get_node_base_interface());
+    callback_group_executor.spin();
+  });
 
   submap_list_publisher_ =
       create_publisher<::cartographer_ros_msgs::msg::SubmapList>(
@@ -174,51 +185,51 @@ nav2_util::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State & /*s
   run_final_optimization_server = create_service<std_srvs::srv::Trigger>(
         cartographer_ros::kRunFinalOptimizationServiceName,
         std::bind(
-          &Node::handleRunFinalOptimization, this, std::placeholders::_1, std::placeholders::_2));
+          &Node::handleRunFinalOptimization, this, std::placeholders::_1, std::placeholders::_2),rmw_qos_profile_services_default,sync_srv_client_callback_group);
   load_state_server = create_service<cartographer_ros_msgs::srv::WriteState>(
         cartographer_ros::kLoadStateServiceName,
         std::bind(
-          &Node::handleLoadState, this, std::placeholders::_1, std::placeholders::_2));
+          &Node::handleLoadState, this, std::placeholders::_1, std::placeholders::_2),rmw_qos_profile_services_default,sync_srv_client_callback_group);
   load_options_server = create_service<cartographer_ros_msgs::srv::LoadOptions>(
         cartographer_ros::kLoadOptionsServiceName,
         std::bind(
-          &Node::handleLoadOptions, this, std::placeholders::_1, std::placeholders::_2));
+          &Node::handleLoadOptions, this, std::placeholders::_1, std::placeholders::_2),rmw_qos_profile_services_default,sync_srv_client_callback_group);
   start_trajectory_with_default_topics_server = create_service<std_srvs::srv::Trigger>(
         cartographer_ros::kStartTrajectoryWithDefaultTopicsServiceName,
-        std::bind(&Node::handleStartTrajectoryWithDefaultTopics,this,std::placeholders::_1, std::placeholders::_2));
+        std::bind(&Node::handleStartTrajectoryWithDefaultTopics,this,std::placeholders::_1, std::placeholders::_2),rmw_qos_profile_services_default,sync_srv_client_callback_group);
   finish_all_trajectories_server = create_service<std_srvs::srv::Trigger>(
         cartographer_ros::kFinishAllTrajectoriesServiceName,
-        std::bind(&Node::handleFinishAllTrajectories,this,std::placeholders::_1, std::placeholders::_2));
+        std::bind(&Node::handleFinishAllTrajectories,this,std::placeholders::_1, std::placeholders::_2),rmw_qos_profile_services_default,sync_srv_client_callback_group);
 
 
   submap_query_server_ = create_service<cartographer_ros_msgs::srv::SubmapQuery>(
         cartographer_ros::kSubmapQueryServiceName,
         std::bind(
-          &Node::handleSubmapQuery, this, std::placeholders::_1, std::placeholders::_2));
+          &Node::handleSubmapQuery, this, std::placeholders::_1, std::placeholders::_2),rmw_qos_profile_services_default,sync_srv_client_callback_group);
   trajectory_query_server = create_service<cartographer_ros_msgs::srv::TrajectoryQuery>(
         cartographer_ros::kTrajectoryQueryServiceName,
         std::bind(
-          &Node::handleTrajectoryQuery, this, std::placeholders::_1, std::placeholders::_2));
+          &Node::handleTrajectoryQuery, this, std::placeholders::_1, std::placeholders::_2),rmw_qos_profile_services_default,sync_srv_client_callback_group);
   start_trajectory_server_ = create_service<cartographer_ros_msgs::srv::StartTrajectory>(
         cartographer_ros::kStartTrajectoryServiceName,
         std::bind(
-          &Node::handleStartTrajectory, this, std::placeholders::_1, std::placeholders::_2));
+          &Node::handleStartTrajectory, this, std::placeholders::_1, std::placeholders::_2),rmw_qos_profile_services_default,sync_srv_client_callback_group);
   finish_trajectory_server_ = create_service<cartographer_ros_msgs::srv::FinishTrajectory>(
         cartographer_ros::kFinishTrajectoryServiceName,
         std::bind(
-          &Node::handleFinishTrajectory, this, std::placeholders::_1, std::placeholders::_2));
+          &Node::handleFinishTrajectory, this, std::placeholders::_1, std::placeholders::_2),rmw_qos_profile_services_default,sync_srv_client_callback_group);
   write_state_server_ = create_service<cartographer_ros_msgs::srv::WriteState>(
         cartographer_ros::kWriteStateServiceName,
         std::bind(
-          &Node::handleWriteState, this, std::placeholders::_1, std::placeholders::_2));
+          &Node::handleWriteState, this, std::placeholders::_1, std::placeholders::_2),rmw_qos_profile_services_default,sync_srv_client_callback_group);
   get_trajectory_states_server_ = create_service<cartographer_ros_msgs::srv::GetTrajectoryStates>(
         cartographer_ros::kGetTrajectoryStatesServiceName,
         std::bind(
-          &Node::handleGetTrajectoryStates, this, std::placeholders::_1, std::placeholders::_2));
+          &Node::handleGetTrajectoryStates, this, std::placeholders::_1, std::placeholders::_2),rmw_qos_profile_services_default,sync_srv_client_callback_group);
   read_metrics_server_ = create_service<cartographer_ros_msgs::srv::ReadMetrics>(
         cartographer_ros::kReadMetricsServiceName,
         std::bind(
-          &Node::handleReadMetrics, this, std::placeholders::_1, std::placeholders::_2));
+          &Node::handleReadMetrics, this, std::placeholders::_1, std::placeholders::_2),rmw_qos_profile_services_default,sync_srv_client_callback_group);
 
   if (collect_metrics){
     metrics_registry_ = absl::make_unique<cartographer_ros::metrics::FamilyFactory>();
@@ -350,6 +361,9 @@ nav2_util::CallbackReturn Node::on_cleanup(const rclcpp_lifecycle::State & /*sta
   write_state_server_.reset();
   get_trajectory_states_server_.reset();
   read_metrics_server_.reset();
+
+  callback_group_executor.cancel();
+  callback_group_executor_thread.join();
 
   submap_list_publisher_.reset();
   trajectory_node_list_publisher_.reset();
