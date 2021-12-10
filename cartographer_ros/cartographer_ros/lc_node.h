@@ -63,9 +63,6 @@ namespace  {
 std::string configuration_directory;
 std::string configuration_basename;
 bool collect_metrics;
-rclcpp::CallbackGroup::SharedPtr sync_srv_client_callback_group;
-rclcpp::executors::SingleThreadedExecutor callback_group_executor;
-std::thread callback_group_executor_thread;
 }
 
 
@@ -278,6 +275,10 @@ class Node : public nav2_util::LifecycleNode {
   std::shared_ptr<tf2_ros::Buffer> tf_buffer;
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener;
+
+  rclcpp::CallbackGroup::SharedPtr sync_srv_client_callback_group;
+  rclcpp::executors::SingleThreadedExecutor callback_group_executor;
+  std::thread callback_group_executor_thread;
 
 protected:
 
