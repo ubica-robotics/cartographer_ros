@@ -60,6 +60,15 @@ struct PointXYZIT {
   float unused_padding[2];
 };
 
+struct RsPointXYZIRT
+{
+  PCL_ADD_POINT4D;
+  uint8_t intensity;
+  uint16_t ring = 0;
+  double timestamp = 0;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+} EIGEN_ALIGN16;
+
 }  // namespace
 
 POINT_CLOUD_REGISTER_POINT_STRUCT(
@@ -69,6 +78,13 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(
     PointXYZIT,
     (float, x, x)(float, y, y)(float, z, z)(float, intensity,
                                             intensity)(float, time, time))
+
+POINT_CLOUD_REGISTER_POINT_STRUCT(
+    RsPointXYZIRT,
+    (float, x, x)(float, y, y)(float, z, z)
+    (uint8_t, intensity, intensity)
+    (uint16_t, ring, ring)
+    (double, timestamp, timestamp))
 
 namespace cartographer_ros {
 namespace {
@@ -220,16 +236,16 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg) {
   // We check for intensity field here to avoid run-time warnings if we pass in
   // a PointCloud2 without intensity.
   // IGNORE INTENSITY
-  //if (PointCloud2HasField(msg, "intensity")) {
-  if (false) {
-    if (PointCloud2HasField(msg, "time")) {
-      pcl::PointCloud<PointXYZIT> pcl_point_cloud;
+  if (PointCloud2HasField(msg, "intensity")) {
+  //if (false) {
+    if (PointCloud2HasField(msg, "timestamp")) {
+      pcl::PointCloud<RsPointXYZIRT> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
       point_cloud.points.reserve(pcl_point_cloud.size());
       point_cloud.intensities.reserve(pcl_point_cloud.size());
       for (const auto& point : pcl_point_cloud) {
         point_cloud.points.push_back(
-            {Eigen::Vector3f{point.x, point.y, point.z}, point.time});
+            {Eigen::Vector3f{point.x, point.y, point.z}, (float)point.timestamp});
         point_cloud.intensities.push_back(point.intensity);
       }
     } else {
