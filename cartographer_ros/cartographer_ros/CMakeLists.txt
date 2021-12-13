@@ -17,6 +17,11 @@ google_binary(cartographer_node
     node_main.cc
 )
 
+google_binary(cartographer_lc_node_main
+  SRCS
+    lc_node_main.cc
+)
+
 google_binary(cartographer_lc_node
   SRCS
     lc_node.cc
@@ -58,6 +63,7 @@ google_binary(cartographer_rosbag_validate
 install(TARGETS
   cartographer_node
   cartographer_lc_node
+  cartographer_lc_node_main
   cartographer_occupancy_grid_node
   cartographer_offline_node
   cartographer_assets_writer
