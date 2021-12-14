@@ -1,5 +1,9 @@
 string configuration_directory
 string configuration_basename
+string load_state_filename
+string save_state_filename
 bool collect_metrics
+bool load_frozen_state
+bool start_trajectory_with_default_topics
 ---
 cartographer_ros_msgs/StatusResponse status
