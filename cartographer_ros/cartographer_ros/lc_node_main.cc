@@ -129,6 +129,7 @@ protected:
     constexpr double kTfBufferCacheTimeInSeconds = 10.;
     tf_buffer = std::make_shared<tf2_ros::Buffer>(cartographer_node->get_clock(),
                                                   tf2::durationFromSec(kTfBufferCacheTimeInSeconds),cartographer_node);
+    tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
 
     cartographer_ros::NodeOptions node_options;
     cartographer_ros::TrajectoryOptions trajectory_options;
@@ -188,6 +189,7 @@ protected:
     load_state_server.reset();
 
     tf_buffer.reset();
+    tf_listener.reset();
 
     return nav2_util::CallbackReturn::SUCCESS;
   }
@@ -293,6 +295,7 @@ private:
   std::thread callback_group_executor_thread;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener;
 
   std::string configuration_directory;
   std::string configuration_basename;
