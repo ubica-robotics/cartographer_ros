@@ -88,15 +88,8 @@ protected:
     DEBUG<<"On activate"<<END;
 
     constexpr double kTfBufferCacheTimeInSeconds = 10.;
-
-    std::shared_ptr<tf2_ros::Buffer> tf_buffer =
-        std::make_shared<tf2_ros::Buffer>(
-          cartographer_node->get_clock(),
-          tf2::durationFromSec(kTfBufferCacheTimeInSeconds),
-          cartographer_node);
-
-    std::shared_ptr<tf2_ros::TransformListener> tf_listener =
-        std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+    tf_buffer = std::make_shared<tf2_ros::Buffer>(cartographer_node->get_clock(),tf2::durationFromSec(kTfBufferCacheTimeInSeconds),cartographer_node);
+    tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
 
     cartographer_ros::NodeOptions node_options;
     cartographer_ros::TrajectoryOptions trajectory_options;
@@ -134,6 +127,8 @@ protected:
       node->SerializeState(save_state_filename,
                           true /* include_unfinished_submaps */);}
 
+    tf_buffer->clear();
+
     node.reset();
 
     destroyBond();
@@ -150,7 +145,11 @@ protected:
     load_state_filename.clear();
     save_state_filename.clear();
 
+    tf_buffer->clear();
+    tf_listener.reset();
+
     load_options_server.reset();
+
 
     return nav2_util::CallbackReturn::SUCCESS;
   }
@@ -197,6 +196,9 @@ private:
   std::shared_ptr<cartographer_ros::Node> node;
   ::rclcpp::Service<cartographer_ros_msgs::srv::LoadOptions>::SharedPtr load_options_server;
 
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener;
+
   std::string configuration_directory;
   std::string configuration_basename;
   std::string load_state_filename;
@@ -219,10 +221,20 @@ int main(int argc, char** argv) {
   cartographer_ros::ScopedRosLogSink ros_log_sink;
   auto lc_node = std::make_shared<lc_cartographer_ros>();
 
-  rclcpp::executors::SingleThreadedExecutor exec;
-  exec.add_node(lc_node->get_node_base_interface());
-  exec.add_node(lc_node->cartographer_node);
-  exec.spin();
+  // Create a Node and an Executor.
+  rclcpp::executors::SingleThreadedExecutor executor1;
+  executor1.add_node(lc_node->get_node_base_interface());
+
+  // Create another.
+  rclcpp::executors::SingleThreadedExecutor executor2;
+  executor2.add_node(lc_node->cartographer_node);
+
+  // Spin the Executor in a separate thread.
+  std::thread spinThread([&executor2]() {
+      executor2.spin();
+  });
+
+  executor1.spin();
 
   ::rclcpp::shutdown();
 
