@@ -69,6 +69,7 @@ public:
     load_options_server.reset();
     finish_all_trajectories_server.reset();
     load_state_server.reset();
+    start_trajectory_with_default_topics_server.reset();
 
     tf_buffer.reset();
   }
@@ -98,51 +99,62 @@ protected:
     });
 
     // New services exposed
+    //,sync_srv_client_callback_group
     run_final_optimization_server = create_service<std_srvs::srv::Trigger>(
           "run_final_optimization",
           std::bind(
             &lc_cartographer_ros::handleRunFinalOptimization, this, std::placeholders::_1, std::placeholders::_2),
-            rmw_qos_profile_services_default,sync_srv_client_callback_group);
+            rmw_qos_profile_services_default);
     load_options_server = create_service<cartographer_ros_msgs::srv::LoadOptions>(
           "load_options",
           std::bind(
             &lc_cartographer_ros::handleLoadOptions, this, std::placeholders::_1, std::placeholders::_2),
-            rmw_qos_profile_services_default,sync_srv_client_callback_group);
+            rmw_qos_profile_services_default);
     finish_all_trajectories_server = create_service<std_srvs::srv::Trigger>(
           "finish_all_trajectories",
           std::bind(
             &lc_cartographer_ros::handleFinishAllTrajectories,this,std::placeholders::_1, std::placeholders::_2),
-            rmw_qos_profile_services_default,sync_srv_client_callback_group);
+            rmw_qos_profile_services_default);
     load_state_server = create_service<cartographer_ros_msgs::srv::WriteState>(
           "load_state",
           std::bind(
             &lc_cartographer_ros::handleLoadState, this, std::placeholders::_1, std::placeholders::_2),
-          rmw_qos_profile_services_default,sync_srv_client_callback_group);
-
-
+            rmw_qos_profile_services_default);
+    start_trajectory_with_default_topics_server = create_service<std_srvs::srv::Trigger>(
+          "start_trajectory_with_default_topics",
+          std::bind(
+            &lc_cartographer_ros::handleStartTrajectoryWithDefaultTopics,this,std::placeholders::_1, std::placeholders::_2),
+            rmw_qos_profile_services_default);
 
     return nav2_util::CallbackReturn::SUCCESS;
   }
 
   nav2_util::CallbackReturn on_activate(const rclcpp_lifecycle::State & /*state*/){
 
+    DEBUG << "A" << END;
     constexpr double kTfBufferCacheTimeInSeconds = 10.;
     tf_buffer = std::make_shared<tf2_ros::Buffer>(cartographer_node->get_clock(),
                                                   tf2::durationFromSec(kTfBufferCacheTimeInSeconds),cartographer_node);
     tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
 
-    cartographer_ros::NodeOptions node_options;
-    cartographer_ros::TrajectoryOptions trajectory_options;
+    DEBUG << "B" << END;
+
+    node_options = cartographer_ros::NodeOptions();
+    trajectory_options = cartographer_ros::TrajectoryOptions();
     std::tie(node_options, trajectory_options) =
         cartographer_ros::LoadOptions(configuration_directory, configuration_basename);
 
+    DEBUG << "C" << END;
     auto map_builder =
       cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
 
+    DEBUG << "D" << END;
     node = std::make_shared<cartographer_ros::Node>(
       node_options, std::move(map_builder), tf_buffer, cartographer_node,
       collect_metrics);
 
+
+    DEBUG << "E" << END;
     if (!load_state_filename.empty()) {
       node->LoadState(load_state_filename, load_frozen_state);
     }
@@ -166,6 +178,8 @@ protected:
                           true /* include_unfinished_submaps */);}
 
     tf_buffer->clear();
+    tf_buffer.reset();
+    tf_listener.reset();
     node.reset();
 
     destroyBond();
@@ -187,9 +201,7 @@ protected:
     load_options_server.reset();
     finish_all_trajectories_server.reset();
     load_state_server.reset();
-
-    tf_buffer.reset();
-    tf_listener.reset();
+    start_trajectory_with_default_topics_server.reset();
 
     return nav2_util::CallbackReturn::SUCCESS;
   }
@@ -207,10 +219,10 @@ private:
     // We must go through on_deactivate to clean the system and then on_activate to create a new instance with the options loaded
     RCLCPP_WARN(get_logger(),"A transition to inactive and then back to active state is needed apply the new options loaded");
 
-    configuration_directory = request.get()->configuration_directory;
-    configuration_basename = request.get()->configuration_basename;
-    load_state_filename = request.get()->load_state_filename;
-    save_state_filename = request.get()->save_state_filename;
+    configuration_directory = request.get()->configuration_directory.data();
+    configuration_basename = request.get()->configuration_basename.data();
+    load_state_filename = request.get()->load_state_filename.data();
+    save_state_filename = request.get()->save_state_filename.data();
     collect_metrics = request.get()->collect_metrics;
     load_frozen_state = request.get()->load_frozen_state;
     start_trajectory_with_default_topics = request.get()->start_trajectory_with_default_topics;
@@ -264,15 +276,35 @@ private:
       }
 
     // We shouldn't load a state if there is an active trajectory
-    RCLCPP_WARN( get_logger(),"Received LoadState request, all current trajectories will be finished");
+    RCLCPP_WARN( get_logger(),"Received LoadState request, all current trajectories should be finished");
 
-    node->FinishAllTrajectories();
+    //node->FinishAllTrajectories();
 
     // filename should be actually: load_state_filename
     // include_unfinished_submaps should be actually: load_frozen_state
-    node->LoadState(request.get()->filename, request.get()->include_unfinished_submaps);
+    node->LoadState(request.get()->filename.data(), request.get()->include_unfinished_submaps);
 
     response->status.code = cartographer_ros_msgs::msg::StatusCode::OK;
+    return true;
+  }
+
+  bool handleStartTrajectoryWithDefaultTopics(const std::shared_ptr<std_srvs::srv::Trigger::Request> , std::shared_ptr<std_srvs::srv::Trigger::Response> response){
+
+    if (get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+        RCLCPP_WARN(
+          get_logger(),
+          "Received StartTrajectoryWithDefaultTopics request but not in ACTIVE state, ignoring!");
+        return false;
+      }
+
+    // We shouldn't start a trajectory if there is another one active
+    RCLCPP_WARN( get_logger(),"Received StartTrajectoryWithDefaultTopics request, all current trajectories should be finished");
+
+    //node->FinishAllTrajectories();
+
+    node->StartTrajectoryWithDefaultTopics(trajectory_options);
+
+    response->success=true;
     return true;
   }
 
@@ -280,15 +312,17 @@ public:
 
   rclcpp::Node::SharedPtr cartographer_node;
 
-
 private:
 
   std::shared_ptr<cartographer_ros::Node> node;
+  cartographer_ros::NodeOptions node_options;
+  cartographer_ros::TrajectoryOptions trajectory_options;
 
   ::rclcpp::Service<cartographer_ros_msgs::srv::LoadOptions>::SharedPtr load_options_server;
   ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr run_final_optimization_server;
   ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr finish_all_trajectories_server;
   ::rclcpp::Service<cartographer_ros_msgs::srv::WriteState>::SharedPtr load_state_server;
+  ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_trajectory_with_default_topics_server;
 
   rclcpp::CallbackGroup::SharedPtr sync_srv_client_callback_group;
   rclcpp::executors::SingleThreadedExecutor callback_group_executor;
@@ -304,6 +338,7 @@ private:
   bool collect_metrics;
   bool load_frozen_state;
   bool start_trajectory_with_default_topics;
+
 };
 
 int main(int argc, char** argv) {
@@ -316,6 +351,8 @@ int main(int argc, char** argv) {
   google::ParseCommandLineFlags(&argc, &argv, false);
 
   cartographer_ros::ScopedRosLogSink ros_log_sink;
+
+
   auto lc_node = std::make_shared<lc_cartographer_ros>();
 
   rclcpp::executors::MultiThreadedExecutor executor;
