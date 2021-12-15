@@ -241,12 +241,77 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg) {
     if (PointCloud2HasField(msg, "timestamp")) {
       pcl::PointCloud<RsPointXYZIRT> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
-      point_cloud.points.reserve(pcl_point_cloud.size());
-      point_cloud.intensities.reserve(pcl_point_cloud.size());
+
+      float min_height = 1.5;
+      float max_height = 5.0;
+      float min_range = 0.0;
+      float max_altitude = 60.0 * M_PI/180;
+      double res_deg = 0.2;
+      double res_rad = res_deg * M_PI/180;
+      std::tuple<float, double, float> init_h_range = { 200.0, 0.0, 0.0 };
+      std::vector<std::tuple<float, float, float>> h_ranges(std::floor(360.0/res_deg)+1, init_h_range);
+      std::vector<float> min_h_ranges_above_altitude(std::floor(360.0/res_deg)+1, 200);
+      std::unordered_set<int> blacklisted_index;
+
       for (const auto& point : pcl_point_cloud) {
-        point_cloud.points.push_back(
-            {Eigen::Vector3f{point.x, point.y, point.z}, (float)point.timestamp});
-        point_cloud.intensities.push_back(point.intensity);
+        // filter by height
+        if (min_height < point.z && point.z < max_height) {
+          float h_range = std::hypot(point.x, point.y);
+          float azimuth = std::atan2(point.y, point.x);
+          float altitude = std::atan2(point.z, h_range);
+
+          if (!std::isnan(azimuth) && !std::isnan(altitude)) {
+            int index = std::floor((M_PI + azimuth)/res_rad);
+
+            if (altitude > max_altitude) {
+              //min_h_ranges_above_altitude[index] = std::min(min_h_ranges_above_altitude[index], h_range);
+              // retroactively remove points further away than the above altitude min point
+//              if (h_ranges[index] > min_h_ranges_above_altitude[index]) {
+//                h_ranges[index] = 200;
+//              }
+            } else {
+//              if (h_range < min_h_ranges_above_altitude[index]) {
+//                h_ranges[index] = std::min(h_ranges[index], h_range);
+//              }
+              if (h_range < std::get<0>(h_ranges[index])) {
+                  std::get<0>(h_ranges[index]) = h_range;
+                  std::get<1>(h_ranges[index]) = point.timestamp;
+                  std::get<2>(h_ranges[index]) = point.intensity;
+                  //LOG(INFO) << "point.timestamp: " << point.timestamp;
+                }
+            }
+
+
+//            h_ranges[index] = std::min(h_ranges[index], h_range);
+
+//            if (h_range > min_range)
+//            {
+//              if (blacklisted_index.count(index) == 0) {
+//                h_ranges[index] = std::min(h_ranges[index], h_range);
+//              }
+//            } else
+//            {
+//              blacklisted_index.insert(index);
+//            }
+          }
+        }
+      }
+
+      point_cloud.points.reserve(h_ranges.size());
+      point_cloud.intensities.reserve(h_ranges.size());
+      for (int i = 0; i < h_ranges.size(); i++) {
+        if ( std::get<0>(h_ranges[i]) < 200) {
+          double angle = -M_PI + res_rad * (i+0.5);
+          point_cloud.points.push_back(
+              {Eigen::Vector3f{
+                 std::get<0>(h_ranges[i]) * std::cos(angle),
+                 std::get<0>(h_ranges[i]) * std::sin(angle),
+                 0.0
+               }, (float)pcl_point_cloud[0].timestamp});
+          // }, (float)(pcl_point_cloud[0].timestamp + std::min((res_deg * i)/360.0, 1.0)/10.0)});
+          point_cloud.intensities.push_back(std::get<2>(h_ranges[i]));
+          //LOG(INFO) << "timestamp: " << std::get<1>(h_ranges[i]);
+        }
       }
     } else {
       pcl::PointCloud<pcl::PointXYZI> pcl_point_cloud;
