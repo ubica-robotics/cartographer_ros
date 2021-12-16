@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright 2016 The Cartographer Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -149,9 +149,9 @@ protected:
       cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
 
     DEBUG << "D" << END;
-    node = std::make_shared<cartographer_ros::Node>(
+    node.reset(new cartographer_ros::Node(
       node_options, std::move(map_builder), tf_buffer, cartographer_node,
-      collect_metrics);
+      collect_metrics));
 
 
     DEBUG << "E" << END;
@@ -180,7 +180,7 @@ protected:
     tf_buffer->clear();
     tf_buffer.reset();
     tf_listener.reset();
-    node.reset();
+
 
     destroyBond();
 
