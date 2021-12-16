@@ -131,30 +131,23 @@ protected:
 
   nav2_util::CallbackReturn on_activate(const rclcpp_lifecycle::State & /*state*/){
 
-    DEBUG << "A" << END;
     constexpr double kTfBufferCacheTimeInSeconds = 10.;
     tf_buffer = std::make_shared<tf2_ros::Buffer>(cartographer_node->get_clock(),
                                                   tf2::durationFromSec(kTfBufferCacheTimeInSeconds),cartographer_node);
     tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
-
-    DEBUG << "B" << END;
 
     node_options = cartographer_ros::NodeOptions();
     trajectory_options = cartographer_ros::TrajectoryOptions();
     std::tie(node_options, trajectory_options) =
         cartographer_ros::LoadOptions(configuration_directory, configuration_basename);
 
-    DEBUG << "C" << END;
     auto map_builder =
       cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
 
-    DEBUG << "D" << END;
     node.reset(new cartographer_ros::Node(
       node_options, std::move(map_builder), tf_buffer, cartographer_node,
       collect_metrics));
 
-
-    DEBUG << "E" << END;
     if (!load_state_filename.empty()) {
       node->LoadState(load_state_filename, load_frozen_state);
     }
@@ -180,7 +173,6 @@ protected:
     tf_buffer->clear();
     tf_buffer.reset();
     tf_listener.reset();
-
 
     destroyBond();
 
