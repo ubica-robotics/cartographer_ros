@@ -242,8 +242,8 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg) {
       pcl::PointCloud<RsPointXYZIRT> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
 
-      float min_height = 2.5;
-      float max_height = 8.0;
+      float min_height = 1.7;
+      float max_height = 4.3;
       float min_range = 0.0;
       float max_altitude = 60.0 * M_PI/180;
       double res_deg = 0.2;
