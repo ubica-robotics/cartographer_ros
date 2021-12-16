@@ -53,6 +53,12 @@ public:
     declare_parameter<bool>("start_trajectory_with_default_topics",start_trajectory_with_default_topics);
 
     cartographer_node = rclcpp::Node::make_shared("cartographer_node");
+    sync_srv_client_callback_group = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false);
+
+    constexpr double kTfBufferCacheTimeInSeconds = 10.;
+    tf_buffer= std::make_shared<tf2_ros::Buffer>(cartographer_node->get_clock(),
+                                                  tf2::durationFromSec(kTfBufferCacheTimeInSeconds),cartographer_node);
+    tf_listener= std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
   }
 
   ~lc_cartographer_ros(){
@@ -62,16 +68,15 @@ public:
     load_state_filename.clear();
     save_state_filename.clear();
 
-    callback_group_executor.cancel();
-    callback_group_executor_thread.join();
-
     run_final_optimization_server.reset();
     load_options_server.reset();
     finish_all_trajectories_server.reset();
     load_state_server.reset();
     start_trajectory_with_default_topics_server.reset();
 
+    tf_buffer->clear();
     tf_buffer.reset();
+    tf_listener.reset();
   }
 
 protected:
@@ -90,51 +95,38 @@ protected:
     CHECK(!configuration_basename.empty())
         << "-configuration_basename is missing.";
 
-    // Init callback group and spin it in a dedicated thread
-    sync_srv_client_callback_group = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false);
-
-    callback_group_executor_thread = std::thread([this]() {
-      callback_group_executor.add_callback_group(sync_srv_client_callback_group, get_node_base_interface());
-      callback_group_executor.spin();
-    });
-
     // New services exposed
     //,sync_srv_client_callback_group
     run_final_optimization_server = create_service<std_srvs::srv::Trigger>(
           "run_final_optimization",
           std::bind(
             &lc_cartographer_ros::handleRunFinalOptimization, this, std::placeholders::_1, std::placeholders::_2),
-            rmw_qos_profile_services_default);
+            rmw_qos_profile_services_default,sync_srv_client_callback_group);
     load_options_server = create_service<cartographer_ros_msgs::srv::LoadOptions>(
           "load_options",
           std::bind(
             &lc_cartographer_ros::handleLoadOptions, this, std::placeholders::_1, std::placeholders::_2),
-            rmw_qos_profile_services_default);
+            rmw_qos_profile_services_default,sync_srv_client_callback_group);
     finish_all_trajectories_server = create_service<std_srvs::srv::Trigger>(
           "finish_all_trajectories",
           std::bind(
             &lc_cartographer_ros::handleFinishAllTrajectories,this,std::placeholders::_1, std::placeholders::_2),
-            rmw_qos_profile_services_default);
+            rmw_qos_profile_services_default,sync_srv_client_callback_group);
     load_state_server = create_service<cartographer_ros_msgs::srv::WriteState>(
           "load_state",
           std::bind(
             &lc_cartographer_ros::handleLoadState, this, std::placeholders::_1, std::placeholders::_2),
-            rmw_qos_profile_services_default);
+            rmw_qos_profile_services_default,sync_srv_client_callback_group);
     start_trajectory_with_default_topics_server = create_service<std_srvs::srv::Trigger>(
           "start_trajectory_with_default_topics",
           std::bind(
             &lc_cartographer_ros::handleStartTrajectoryWithDefaultTopics,this,std::placeholders::_1, std::placeholders::_2),
-            rmw_qos_profile_services_default);
+            rmw_qos_profile_services_default,sync_srv_client_callback_group);
 
     return nav2_util::CallbackReturn::SUCCESS;
   }
 
   nav2_util::CallbackReturn on_activate(const rclcpp_lifecycle::State & /*state*/){
-
-    constexpr double kTfBufferCacheTimeInSeconds = 10.;
-    tf_buffer = std::make_shared<tf2_ros::Buffer>(cartographer_node->get_clock(),
-                                                  tf2::durationFromSec(kTfBufferCacheTimeInSeconds),cartographer_node);
-    tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
 
     node_options = cartographer_ros::NodeOptions();
     trajectory_options = cartographer_ros::TrajectoryOptions();
@@ -171,8 +163,6 @@ protected:
                           true /* include_unfinished_submaps */);}
 
     tf_buffer->clear();
-    tf_buffer.reset();
-    tf_listener.reset();
 
     destroyBond();
 
@@ -185,9 +175,6 @@ protected:
     configuration_basename.clear();
     load_state_filename.clear();
     save_state_filename.clear();
-
-    callback_group_executor.cancel();
-    callback_group_executor_thread.join();
 
     run_final_optimization_server.reset();
     load_options_server.reset();
@@ -304,10 +291,11 @@ private:
 public:
 
   rclcpp::Node::SharedPtr cartographer_node;
+  rclcpp::CallbackGroup::SharedPtr sync_srv_client_callback_group;
 
 private:
 
-  std::shared_ptr<cartographer_ros::Node> node;
+  std::unique_ptr<cartographer_ros::Node> node;
   cartographer_ros::NodeOptions node_options;
   cartographer_ros::TrajectoryOptions trajectory_options;
 
@@ -316,10 +304,6 @@ private:
   ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr finish_all_trajectories_server;
   ::rclcpp::Service<cartographer_ros_msgs::srv::WriteState>::SharedPtr load_state_server;
   ::rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_trajectory_with_default_topics_server;
-
-  rclcpp::CallbackGroup::SharedPtr sync_srv_client_callback_group;
-  rclcpp::executors::SingleThreadedExecutor callback_group_executor;
-  std::thread callback_group_executor_thread;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener;
@@ -345,14 +329,15 @@ int main(int argc, char** argv) {
 
   cartographer_ros::ScopedRosLogSink ros_log_sink;
 
-
   auto lc_node = std::make_shared<lc_cartographer_ros>();
 
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(lc_node->get_node_base_interface());
+  executor.add_callback_group(lc_node->sync_srv_client_callback_group, lc_node->get_node_base_interface());
   executor.add_node(lc_node->cartographer_node);
   executor.spin();
 
+  executor.cancel();
   ::rclcpp::shutdown();
 
   return 0;
