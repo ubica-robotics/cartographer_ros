@@ -25,6 +25,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra)
 endif()
 
+add_compile_options(-g)
+
 find_package(cartographer REQUIRED)
 include("${CARTOGRAPHER_CMAKE_DIR}/functions.cmake")
 set(BUILD_SHARED_LIBS OFF)
@@ -54,6 +56,7 @@ find_package(PCL REQUIRED COMPONENTS common)
 find_package(Eigen3 REQUIRED)
 find_package(urdf REQUIRED)
 find_package(urdfdom_headers REQUIRED)
+find_package(backward_ros REQUIRED)
 
 include_directories(
   include
@@ -93,6 +96,7 @@ ament_target_dependencies(${PROJECT_NAME} PUBLIC
   rosbag2_storage
   urdf
   urdfdom_headers
+  backward_ros
 )
 add_subdirectory("cartographer_ros")
 target_link_libraries(${PROJECT_NAME} PUBLIC cartographer)
@@ -115,7 +119,8 @@ ament_export_dependencies(
   rosbag2_cpp
   rosbag2_storage
   urdf
-  urdfdom_headers)
+  urdfdom_headers
+  backward_ros)
 
 # Lua
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${LUA_INCLUDE_DIR})
@@ -192,7 +197,8 @@ ament_export_dependencies(
   rosbag2_cpp
   rosbag2_storage
   urdf
-  urdfdom_headers)
+  urdfdom_headers
+  backward_ros)
 ament_export_libraries(${PROJECT_NAME})
 ament_export_include_directories(include)
 

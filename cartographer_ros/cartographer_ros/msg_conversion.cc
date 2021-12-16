@@ -248,8 +248,8 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg) {
       float max_altitude = 60.0 * M_PI/180;
       double res_deg = 0.2;
       double res_rad = res_deg * M_PI/180;
-      std::tuple<float, double, float> init_h_range = { 200.0, 0.0, 0.0 };
-      std::vector<std::tuple<float, float, float>> h_ranges(std::floor(360.0/res_deg)+1, init_h_range);
+      std::tuple<float, double, float> init_h_range = std::make_tuple( 200.0, 0.0, 0.0 );
+      std::vector<std::tuple<float, double, float>> h_ranges(std::floor(360.0/res_deg)+1, init_h_range);
       std::vector<float> min_h_ranges_above_altitude(std::floor(360.0/res_deg)+1, 200);
       std::unordered_set<int> blacklisted_index;
 
