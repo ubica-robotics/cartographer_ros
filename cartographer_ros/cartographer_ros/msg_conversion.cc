@@ -242,8 +242,8 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg) {
       pcl::PointCloud<RsPointXYZIRT> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
 
-      float min_height = 1.5;
-      float max_height = 5.0;
+      float min_height = 2.5;
+      float max_height = 8.0;
       float min_range = 0.0;
       float max_altitude = 60.0 * M_PI/180;
       double res_deg = 0.2;
@@ -262,24 +262,27 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg) {
 
           if (!std::isnan(azimuth) && !std::isnan(altitude)) {
             int index = std::floor((M_PI + azimuth)/res_rad);
+            std::get<0>(h_ranges[index]) = std::min(std::get<0>(h_ranges[index]), h_range);
+            std::get<1>(h_ranges[index]) = point.timestamp;
+            std::get<2>(h_ranges[index]) = point.intensity;
 
-            if (altitude > max_altitude) {
-              //min_h_ranges_above_altitude[index] = std::min(min_h_ranges_above_altitude[index], h_range);
-              // retroactively remove points further away than the above altitude min point
-//              if (h_ranges[index] > min_h_ranges_above_altitude[index]) {
-//                h_ranges[index] = 200;
-//              }
-            } else {
-//              if (h_range < min_h_ranges_above_altitude[index]) {
-//                h_ranges[index] = std::min(h_ranges[index], h_range);
-//              }
-              if (h_range < std::get<0>(h_ranges[index])) {
-                  std::get<0>(h_ranges[index]) = h_range;
-                  std::get<1>(h_ranges[index]) = point.timestamp;
-                  std::get<2>(h_ranges[index]) = point.intensity;
-                  //LOG(INFO) << "point.timestamp: " << point.timestamp;
-                }
-            }
+//            if (altitude > max_altitude) {
+//              //min_h_ranges_above_altitude[index] = std::min(min_h_ranges_above_altitude[index], h_range);
+//              // retroactively remove points further away than the above altitude min point
+////              if (h_ranges[index] > min_h_ranges_above_altitude[index]) {
+////                h_ranges[index] = 200;
+////              }
+//            } else {
+////              if (h_range < min_h_ranges_above_altitude[index]) {
+////                h_ranges[index] = std::min(h_ranges[index], h_range);
+////              }
+//              if (h_range < std::get<0>(h_ranges[index])) {
+//                  std::get<0>(h_ranges[index]) = h_range;
+//                  std::get<1>(h_ranges[index]) = point.timestamp;
+//                  std::get<2>(h_ranges[index]) = point.intensity;
+//                  //LOG(INFO) << "point.timestamp: " << point.timestamp;
+//                }
+//            }
 
 
 //            h_ranges[index] = std::min(h_ranges[index], h_range);
