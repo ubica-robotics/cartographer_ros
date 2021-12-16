@@ -274,6 +274,7 @@ private:
 
     // filename should be actually: load_state_filename
     // include_unfinished_submaps should be actually: load_frozen_state
+    // This blocks
     node->LoadState(request.get()->filename.data(), request.get()->include_unfinished_submaps);
 
     response->status.code = cartographer_ros_msgs::msg::StatusCode::OK;
