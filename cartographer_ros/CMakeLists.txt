@@ -56,7 +56,13 @@ find_package(urdfdom_headers REQUIRED)
 
 include_directories(
   include
+  ${LUA_INCLUDE_DIR}
+  ${PCL_INCLUDE_DIRS}
+  ${urdfdom_headers_INCLUDE_DIRS}
 )
+
+add_library(${PROJECT_NAME} #SHARED or STATIC?
+  src/assets_writer.cpp
 
 
 # Executables
