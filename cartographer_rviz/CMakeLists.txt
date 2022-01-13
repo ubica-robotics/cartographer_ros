@@ -50,12 +50,35 @@ find_package(Threads REQUIRED)
 
 include_directories(
   include
-  ".")
+  )
 
-file(GLOB_RECURSE ALL_SRCS "cartographer_rviz/*.cc" "cartographer_rviz/*.h")
-set(CMAKE_AUTOMOC ON)
+add_library(${PROJECT_NAME} SHARED
+  src/drawable_submap.cpp
+  src/ogre_slice.cpp
+  src/submaps_display.cpp
+  )
 
-add_library(${PROJECT_NAME} SHARED ${ALL_SRCS})
+set(dependencies
+  rclcpp
+  cartographer
+  cartographer_ros
+  cartographer_ros_msgs
+  rviz2
+  rviz_common
+  pcl_conversions
+  rcutils
+  )
+
+ament_target_dependencies(${PROJECT_NAME}
+  ${dependencies}
+)
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+  ${Qt5Widgets_INCLUDE_DIRS}
+  ${OGRE_INCLUDE_DIRS}
+)
+
+
 
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.
