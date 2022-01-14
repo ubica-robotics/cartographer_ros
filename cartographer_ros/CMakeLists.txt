@@ -26,6 +26,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra)
 endif()
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 find_package(cartographer REQUIRED)
 find_package(cartographer_ros_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
