@@ -27,6 +27,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra)
 endif()
 
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_AUTOMOC ON)
+
 find_package(Boost REQUIRED COMPONENTS system iostreams)
 find_package(cartographer REQUIRED)
 include("${CARTOGRAPHER_CMAKE_DIR}/functions.cmake")
@@ -49,6 +52,12 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
+set(rviz_plugins_headers_to_moc
+  include/cartographer_rviz/drawable_submap.h
+  include/cartographer_rviz/ogre_slice.h
+  include/cartographer_rviz/submaps_display.h
+)
+
 include_directories(
   include
   )
@@ -57,6 +66,7 @@ add_library(${PROJECT_NAME} SHARED
   src/drawable_submap.cpp
   src/ogre_slice.cpp
   src/submaps_display.cpp
+  ${rviz_plugins_headers_to_moc}
   )
 
 set(dependencies
