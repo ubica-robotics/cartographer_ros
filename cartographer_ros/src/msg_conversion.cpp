@@ -41,6 +41,7 @@
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
+#include <sensor_msgs/point_cloud2_iterator.hpp>
 
 namespace {
 
@@ -262,8 +263,10 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg) {
 
           if (!std::isnan(azimuth) && !std::isnan(altitude)) {
             int index = std::floor((M_PI + azimuth)/res_rad);
-            std::get<0>(h_ranges[index]) = std::min(std::get<0>(h_ranges[index]), h_range);
-            std::get<1>(h_ranges[index]) = point.timestamp;
+            if (h_range < std::get<0>(h_ranges[index]) ) {
+              std::get<0>(h_ranges[index]) = h_range;
+              std::get<1>(h_ranges[index]) = point.timestamp;
+            }
             std::get<2>(h_ranges[index]) = point.intensity;
 
 //            if (altitude > max_altitude) {
@@ -309,6 +312,17 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg) {
               {Eigen::Vector3f{
                  std::get<0>(h_ranges[i]) * std::cos(angle),
                  std::get<0>(h_ranges[i]) * std::sin(angle),
+                 0.0
+               }, (float)pcl_point_cloud[0].timestamp});
+          // }, (float)(pcl_point_cloud[0].timestamp + std::min((res_deg * i)/360.0, 1.0)/10.0)});
+          point_cloud.intensities.push_back(std::get<2>(h_ranges[i]));
+          //LOG(INFO) << "timestamp: " << std::get<1>(h_ranges[i]);
+        } else {
+          double angle = -M_PI + res_rad * (i+0.5);
+          point_cloud.points.push_back(
+              {Eigen::Vector3f{
+                 200.0 * std::cos(angle),
+                 200.0  * std::sin(angle),
                  0.0
                }, (float)pcl_point_cloud[0].timestamp});
           // }, (float)(pcl_point_cloud[0].timestamp + std::min((res_deg * i)/360.0, 1.0)/10.0)});
