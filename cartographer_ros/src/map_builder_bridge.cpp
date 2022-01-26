@@ -137,11 +137,14 @@ int MapBuilderBridge::AddTrajectory(
 
   // Make sure there is no trajectory with 'trajectory_id' yet.
   CHECK_EQ(sensor_bridges_.count(trajectory_id), 0);
+
   sensor_bridges_[trajectory_id] = absl::make_unique<SensorBridge>(
       trajectory_options.num_subdivisions_per_laser_scan,
       trajectory_options.tracking_frame,
       node_options_.lookup_transform_timeout_sec, tf_buffer_,
-      map_builder_->GetTrajectoryBuilder(trajectory_id));
+      map_builder_->GetTrajectoryBuilder(trajectory_id), trajectory_options.flatten_3d_to_2d,
+      trajectory_options.min_z_flatten, trajectory_options.max_z_flatten);
+
   auto emplace_result =
       trajectory_options_.emplace(trajectory_id, trajectory_options);
   CHECK(emplace_result.second == true);

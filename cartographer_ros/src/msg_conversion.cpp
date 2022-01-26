@@ -232,19 +232,19 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::MultiEchoLaserScan& msg) {
 
 std::tuple<::cartographer::sensor::PointCloudWithIntensities,
            ::cartographer::common::Time>
-ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg) {
+ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg, bool flatten_3d_to_2d,
+                            double min_z_flatten, double max_z_flatten ) {
   PointCloudWithIntensities point_cloud;
   // We check for intensity field here to avoid run-time warnings if we pass in
   // a PointCloud2 without intensity.
   // IGNORE INTENSITY
   if (PointCloud2HasField(msg, "intensity")) {
-  //if (false) {
-    if (PointCloud2HasField(msg, "timestamp")) {
+    if (PointCloud2HasField(msg, "timestamp") && flatten_3d_to_2d) {
       pcl::PointCloud<RsPointXYZIRT> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
 
-      float min_height = 1.7;
-      float max_height = 4.3;
+      float min_height = min_z_flatten;
+      float max_height = max_z_flatten;
       float min_range = 0.0;
       float max_altitude = 60.0 * M_PI/180;
       double res_deg = 0.2;

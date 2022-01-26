@@ -45,7 +45,8 @@ class SensorBridge {
   explicit SensorBridge(
       int num_subdivisions_per_laser_scan, const std::string& tracking_frame,
       double lookup_transform_timeout_sec, tf2_ros::Buffer* tf_buffer,
-      ::cartographer::mapping::TrajectoryBuilderInterface* trajectory_builder);
+      ::cartographer::mapping::TrajectoryBuilderInterface* trajectory_builder,
+      bool flatten_3d_to_2d = false, double min_z_flatten = 0.0, double max_z_flatten = 0.0);
 
   SensorBridge(const SensorBridge&) = delete;
   SensorBridge& operator=(const SensorBridge&) = delete;
@@ -90,6 +91,9 @@ class SensorBridge {
   const TfBridge tf_bridge_;
   ::cartographer::mapping::TrajectoryBuilderInterface* const
       trajectory_builder_;
+
+  bool flatten_3d_to_2d_;
+  double min_z_flatten_, max_z_flatten_;
 
   absl::optional<::cartographer::transform::Rigid3d> ecef_to_local_frame_;
 };

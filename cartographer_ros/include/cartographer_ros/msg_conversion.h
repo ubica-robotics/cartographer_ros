@@ -60,7 +60,8 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::MultiEchoLaserScan& msg);
 
 std::tuple<::cartographer::sensor::PointCloudWithIntensities,
            ::cartographer::common::Time>
-ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg);
+ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg, bool flatten_3d_to_2d = false,
+                            double min_z_flatten = 0.0, double max_z_flatten = 0.0);
 
 ::cartographer::sensor::LandmarkData ToLandmarkData(
     const cartographer_ros_msgs::msg::LandmarkList& landmark_list);

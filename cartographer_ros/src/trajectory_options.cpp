@@ -76,6 +76,14 @@ TrajectoryOptions CreateTrajectoryOptions(
       lua_parameter_dictionary->GetDouble("imu_sampling_ratio");
   options.landmarks_sampling_ratio =
       lua_parameter_dictionary->GetDouble("landmarks_sampling_ratio");
+  if (lua_parameter_dictionary->HasKey("min_z_flatten")
+      && lua_parameter_dictionary->HasKey("max_z_flatten")) {
+    options.flatten_3d_to_2d = true;
+    options.min_z_flatten = lua_parameter_dictionary->GetDouble("min_z_flatten");
+    options.max_z_flatten = lua_parameter_dictionary->GetDouble("max_z_flatten");
+  } else {
+    options.flatten_3d_to_2d = false;
+  }
   CheckTrajectoryOptions(options);
   return options;
 }

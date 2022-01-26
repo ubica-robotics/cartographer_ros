@@ -45,6 +45,9 @@ struct TrajectoryOptions {
   double fixed_frame_pose_sampling_ratio;
   double imu_sampling_ratio;
   double landmarks_sampling_ratio;
+  bool flatten_3d_to_2d;
+  double min_z_flatten;
+  double max_z_flatten;
 };
 
 TrajectoryOptions CreateTrajectoryOptions(

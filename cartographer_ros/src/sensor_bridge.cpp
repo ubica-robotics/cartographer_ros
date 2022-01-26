@@ -43,10 +43,12 @@ SensorBridge::SensorBridge(
     const int num_subdivisions_per_laser_scan,
     const std::string& tracking_frame,
     const double lookup_transform_timeout_sec, tf2_ros::Buffer* const tf_buffer,
-    carto::mapping::TrajectoryBuilderInterface* const trajectory_builder)
+    carto::mapping::TrajectoryBuilderInterface* const trajectory_builder,
+    bool flatten_3d_to_2d, double min_z_flatten, double max_z_flatten)
     : num_subdivisions_per_laser_scan_(num_subdivisions_per_laser_scan),
       tf_bridge_(tracking_frame, lookup_transform_timeout_sec, tf_buffer),
-      trajectory_builder_(trajectory_builder) {}
+      trajectory_builder_(trajectory_builder), flatten_3d_to_2d_(flatten_3d_to_2d),
+      min_z_flatten_(min_z_flatten), max_z_flatten_(max_z_flatten){}
 
 std::unique_ptr<carto::sensor::OdometryData> SensorBridge::ToOdometryData(
     const nav_msgs::msg::Odometry::ConstSharedPtr& msg) {
@@ -175,7 +177,12 @@ void SensorBridge::HandlePointCloud2Message(
     const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg) {
   carto::sensor::PointCloudWithIntensities point_cloud;
   carto::common::Time time;
-  std::tie(point_cloud, time) = ToPointCloudWithIntensities(*msg);
+  if (flatten_3d_to_2d_) {
+    std::tie(point_cloud, time) = ToPointCloudWithIntensities(
+          *msg, flatten_3d_to_2d_, min_z_flatten_, max_z_flatten_);
+  } else {
+    std::tie(point_cloud, time) = ToPointCloudWithIntensities(*msg);
+  }
   HandleRangefinder(sensor_id, time, msg->header.frame_id, point_cloud.points);
 }
 
