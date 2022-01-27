@@ -266,8 +266,8 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg, bool flatt
             if (h_range < std::get<0>(h_ranges[index]) ) {
               std::get<0>(h_ranges[index]) = h_range;
               std::get<1>(h_ranges[index]) = point.timestamp;
+              std::get<2>(h_ranges[index]) = point.intensity;
             }
-            std::get<2>(h_ranges[index]) = point.intensity;
 
 //            if (altitude > max_altitude) {
 //              //min_h_ranges_above_altitude[index] = std::min(min_h_ranges_above_altitude[index], h_range);
