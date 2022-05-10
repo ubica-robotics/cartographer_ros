@@ -36,6 +36,9 @@
 #include <regex>
 #include <string>
 
+#include "msg_conversion.h"  //amaldo for ToGeometryMsgTransform
+
+
 DEFINE_bool(collect_metrics, false,
             "Activates the collection of runtime metrics. If activated, the "
             "metrics can be accessed via a ROS service.");
@@ -302,6 +305,11 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
           ? playable_bag_multiplexer.PeekMessageTime()
           : rclcpp::Time();
 
+
+  rclcpp::Time last_msg_time = begin_time; // amaldo
+  geometry_msgs::msg::Transform last_transform; //amaldo to keep the last known pose
+  
+
   auto laser_scan_serializer = rclcpp::Serialization<sensor_msgs::msg::LaserScan>();
   auto multi_echo_laser_scan_serializer = rclcpp::Serialization<sensor_msgs::msg::MultiEchoLaserScan>();
   auto pcl2_serializer = rclcpp::Serialization<sensor_msgs::msg::PointCloud2>();
@@ -340,6 +348,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
                 .second);
       LOG(INFO) << "Assigned trajectory " << trajectory_id << " to bag "
                 << bag_filenames.at(bag_index);
+      last_msg_time = rclcpp::Time(msg.time_stamp);//amaldo
     } else {
       trajectory_id = bag_index_to_trajectory_id.at(bag_index);
     }
@@ -354,10 +363,68 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
       const std::string& sensor_id = it->second.id;
 
       if (topic_type == "sensor_msgs/msg/LaserScan") {
+
         rclcpp::SerializedMessage serialized_msg(*msg.serialized_data);
         sensor_msgs::msg::LaserScan::SharedPtr laser_scan_msg =
             std::make_shared<sensor_msgs::msg::LaserScan>();
         laser_scan_serializer.deserialize_message(&serialized_msg, laser_scan_msg.get());
+	      //add logic to deal with concatenated bags  //amaldo
+             
+       if (msg.time_stamp > (last_msg_time.nanoseconds() + 5 * 1E9)) {
+		std::cout << "We skipped 5 seconds.\n";
+                last_msg_time = rclcpp::Time(msg.time_stamp);
+
+	const auto& trajectory_data = node.map_builder_bridge_->GetLocalTrajectoryData()[trajectory_id];
+        //last_transform = cartographer_ros::ToGeometryMsgTransform(trajectory_data.local_to_map * trajectory_data.local_slam_data->local_pose);
+        last_transform = cartographer_ros::ToGeometryMsgTransform(trajectory_data.local_slam_data->local_pose);
+
+	node.FinishTrajectory(trajectory_id);
+
+	cartographer_ros_msgs::srv::StartTrajectory::Request request;
+	request.initial_pose.position.x = last_transform.translation.x;
+	request.initial_pose.position.y = last_transform.translation.y;
+        request.initial_pose.position.z = last_transform.translation.z;
+        request.initial_pose.orientation.x = last_transform.rotation.x;
+        request.initial_pose.orientation.y = last_transform.rotation.y;
+        request.initial_pose.orientation.z = last_transform.rotation.z;
+        request.initial_pose.orientation.w = last_transform.rotation.w;
+
+        std::cout << "asking for a new start pose at " << last_transform.translation.x << "," << last_transform.translation.y << std::endl;
+
+
+	const auto pose = ToRigid3d(request.initial_pose);
+	::cartographer::mapping::proto::InitialTrajectoryPose initial_trajectory_pose;
+	initial_trajectory_pose.set_to_trajectory_id(trajectory_id);
+	*initial_trajectory_pose.mutable_relative_pose() = cartographer::transform::ToProto(pose);
+	initial_trajectory_pose.set_timestamp(cartographer::common::ToUniversal(::cartographer_ros::FromRos(rclcpp::Time(0))));
+	*bag_trajectory_options.at(bag_index).trajectory_builder_options.mutable_initial_trajectory_pose() = initial_trajectory_pose;
+
+
+
+      trajectory_id =
+          node.AddOfflineTrajectory(bag_expected_sensor_ids.at(bag_index),
+                                    bag_trajectory_options.at(bag_index));
+
+      bag_index_to_trajectory_id.erase(bag_index); // erase one here so that the next check passes
+      CHECK(bag_index_to_trajectory_id
+                .emplace(std::piecewise_construct,
+                         std::forward_as_tuple(bag_index),
+                         std::forward_as_tuple(trajectory_id))
+                .second);
+      LOG(INFO) << "Assigned trajectory " << trajectory_id << " to bag "
+                << bag_filenames.at(bag_index);
+
+
+
+       } else {
+		last_msg_time = rclcpp::Time(msg.time_stamp);
+
+       }
+
+
+
+
+
         node.HandleLaserScanMessage(trajectory_id, sensor_id,
                                      laser_scan_msg);
       } else if (topic_type == "sensor_msgs/msg/MultiEchoLaserScan") {

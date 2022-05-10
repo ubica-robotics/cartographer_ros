@@ -301,16 +301,26 @@ void Node::PublishLocalTrajectoryData() {
         node_options_.use_pose_extrapolator
             ? extrapolator.ExtrapolatePose(now)
             : trajectory_data.local_slam_data->local_pose;
-    const Rigid3d tracking_to_local = [&] {
+
+    //this looks wrong. CHECK
+    /*
+     const Rigid3d tracking_to_local = [&] {
       if (trajectory_data.trajectory_options.publish_frame_projected_to_2d) {
         return carto::transform::Embed3D(
             carto::transform::Project2D(tracking_to_local_3d));
       }
       return tracking_to_local_3d;
     }();
+     */
 
+    const Rigid3d tracking_to_local = tracking_to_local_3d;
+
+    //amaldo this is already trash data.
+    //tracking_to_local jumps like crazy
+    //local_to_map looks ok
     const Rigid3d tracking_to_map =
         trajectory_data.local_to_map * tracking_to_local;
+    //std::cout << "tracking_to_local: " << tracking_to_local.translation() << std::endl;
 
     if (trajectory_data.published_to_tracking != nullptr) {
       if (node_options_.publish_to_tf) {
