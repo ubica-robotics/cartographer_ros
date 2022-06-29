@@ -18,6 +18,9 @@ Cartographer ROS Integration
 
 |build| |docs| |license|
 
+NOTE: this branch of cartographer_ros requires a custom cartographer packge that you can get from 
+git clone https://github.com/ubica-robotics/cartographer.git -b ubica-raytracing-fix
+
 Purpose
 =======
 
