@@ -220,7 +220,7 @@ void Node::PublishSubmapList() {
 
 void Node::AddExtrapolator(const int trajectory_id,
                            const TrajectoryOptions& options) {
-  constexpr double kExtrapolationEstimationTimeSec = 0.001;  // 1 ms
+  constexpr double kExtrapolationEstimationTimeSec = 2.0;  // 1 ms
   CHECK(extrapolators_.count(trajectory_id) == 0);
   const double gravity_time_constant =
       node_options_.map_builder_options.use_trajectory_builder_3d()
@@ -297,6 +297,8 @@ void Node::PublishLocalTrajectoryData() {
       continue;
     last_published_tf_stamps_[entry.first] = stamped_transform.header.stamp;
 
+
+    //here we get the crazy result if the extrapolator is active
     const Rigid3d tracking_to_local_3d =
         node_options_.use_pose_extrapolator
             ? extrapolator.ExtrapolatePose(now)
@@ -804,6 +806,7 @@ void Node::HandleOdometryMessage(const int trajectory_id,
   }
   auto sensor_bridge_ptr = map_builder_bridge_->sensor_bridge(trajectory_id);
   auto odometry_data_ptr = sensor_bridge_ptr->ToOdometryData(msg);
+  //std::cout << "odometry data in msg: " << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << std::endl;
   if (odometry_data_ptr != nullptr) {
     extrapolators_.at(trajectory_id).AddOdometryData(*odometry_data_ptr);
   }

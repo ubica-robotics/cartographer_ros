@@ -43,8 +43,8 @@ DEFINE_bool(collect_metrics, false,
             "Activates the collection of runtime metrics. If activated, the "
             "metrics can be accessed via a ROS service.");
 DEFINE_string(configuration_directory, "",
-              "First directory in which configuration files are searched, "
-              "second is always the Cartographer installation to allow "
+              "First directory in which configuration files are s121h0.1d,25  "
+              "second is always the Cartographer installation to all "
               "including files from there.");
 DEFINE_string(
     configuration_basenames, "",
@@ -370,8 +370,11 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
         laser_scan_serializer.deserialize_message(&serialized_msg, laser_scan_msg.get());
 	      //add logic to deal with concatenated bags  //amaldo
              
-       if (msg.time_stamp > (last_msg_time.nanoseconds() + 5 * 1E9)) {
-		std::cout << "We skipped 5 seconds.\n";
+       if (msg.time_stamp > (last_msg_time.nanoseconds() + 1 * 1E9)) {
+	       LOG(ERROR) << "detected a jump of at least 1s in laser.";
+       }
+       if (msg.time_stamp > (last_msg_time.nanoseconds() + 600 * 1E9)) {
+		std::cout << "We skipped 600 seconds.\n";
                 last_msg_time = rclcpp::Time(msg.time_stamp);
 
 	const auto& trajectory_data = node.map_builder_bridge_->GetLocalTrajectoryData()[trajectory_id];
