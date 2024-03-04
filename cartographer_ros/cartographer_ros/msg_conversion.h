@@ -20,9 +20,11 @@
 #include "cartographer/common/time.h"
 #include "cartographer/io/submap_painter.h"
 #include "cartographer/sensor/landmark_data.h"
+#include "cartographer/sensor/adaptive_scan_matching_data.h"
 #include "cartographer/sensor/point_cloud.h"
 #include "cartographer/transform/rigid_transform.h"
 #include "cartographer_ros_msgs/msg/landmark_list.hpp"
+#include "cartographer_ros_msgs/msg/adaptive_scan_matching.hpp"
 #include "geometry_msgs/msg/pose.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/transform.hpp"
@@ -61,6 +63,9 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::MultiEchoLaserScan& msg);
 std::tuple<::cartographer::sensor::PointCloudWithIntensities,
            ::cartographer::common::Time>
 ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg);
+
+::cartographer::sensor::AdaptiveScanMatchingData ToAdaptiveScanMatchingData(
+        const cartographer_ros_msgs::msg::AdaptiveScanMatching& msg);
 
 ::cartographer::sensor::LandmarkData ToLandmarkData(
     const cartographer_ros_msgs::msg::LandmarkList& landmark_list);

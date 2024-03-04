@@ -415,6 +415,10 @@ Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
   if (options.use_landmarks) {
     expected_topics.insert(SensorId{SensorType::LANDMARK, kLandmarkTopic});
   }
+  // AdaptiveScanMatching is optional.
+  if (options.use_adaptive_scan_matching) {
+    expected_topics.insert(SensorId{SensorType::ADAPTIVE_SCAN_MATCHING, kCustomTopic});
+  }
   return expected_topics;
 }
 
@@ -783,6 +787,15 @@ void Node::RunFinalOptimization() {
   // Assuming we are not adding new data anymore, the final optimization
   // can be performed without holding the mutex.
   map_builder_bridge_->RunFinalOptimization();
+}
+
+void Node::HandleAdaptiveScanMatchingMessage(
+    const int trajectory_id,
+    const std::string& sensor_id,
+    const cartographer_ros_msgs::msg::AdaptiveScanMatching::ConstSharedPtr& msg) {
+  absl::MutexLock lock(&mutex_);
+  map_builder_bridge_->sensor_bridge(trajectory_id)
+      ->HandleAdaptiveScanMatchingMessage(sensor_id, msg);
 }
 
 void Node::HandleOdometryMessage(const int trajectory_id,
