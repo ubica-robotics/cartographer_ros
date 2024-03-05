@@ -40,6 +40,7 @@
 #include "cartographer_ros_msgs/msg/status_response.hpp"
 #include "cartographer_ros_msgs/msg/submap_entry.hpp"
 #include "cartographer_ros_msgs/msg/submap_list.hpp"
+#include "cartographer_ros_msgs/msg/adaptive_scan_matching.hpp"
 #include "cartographer_ros_msgs/srv/submap_query.hpp"
 #include "cartographer_ros_msgs/srv/write_state.hpp"
 #include "nav_msgs/msg/odometry.hpp"
@@ -98,6 +99,9 @@ class Node {
   // The following functions handle adding sensor data to a trajectory.
   void HandleOdometryMessage(int trajectory_id, const std::string& sensor_id,
                              const nav_msgs::msg::Odometry::ConstSharedPtr& msg);
+  void HandleAdaptiveScanMatchingMessage(
+      int trajectory_id, const std::string& sensor_id,
+      const cartographer_ros_msgs::msg::AdaptiveScanMatching::ConstSharedPtr& msg);
   void HandleNavSatFixMessage(int trajectory_id, const std::string& sensor_id,
                               const sensor_msgs::msg::NavSatFix::ConstSharedPtr& msg);
   void HandleLandmarkMessage(

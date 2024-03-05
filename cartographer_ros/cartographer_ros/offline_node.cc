@@ -309,6 +309,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
   auto odom_serializer = rclcpp::Serialization<nav_msgs::msg::Odometry>();
   auto nav_sat_fix_serializer = rclcpp::Serialization<sensor_msgs::msg::NavSatFix>();
   auto landmark_list_serializer = rclcpp::Serialization<cartographer_ros_msgs::msg::LandmarkList>();
+  auto asm_serializer = rclcpp::Serialization<cartographer_ros_msgs::msg::AdaptiveScanMatching>();
 
   while (playable_bag_multiplexer.IsMessageAvailable()) {
     if (!::rclcpp::ok()) {
@@ -402,6 +403,13 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
         landmark_list_serializer.deserialize_message(&serialized_msg, landmark_list_msg.get());
         node.HandleLandmarkMessage(trajectory_id, sensor_id,
                                      landmark_list_msg);
+      } else if (topic_type == "cartographer_ros_msgs/msg/AdaptiveScanMatching") {
+        rclcpp::SerializedMessage serialized_msg(*msg.serialized_data);
+        cartographer_ros_msgs::msg::AdaptiveScanMatching::SharedPtr asm_msg =
+            std::make_shared<cartographer_ros_msgs::msg::AdaptiveScanMatching>();
+        asm_serializer.deserialize_message(&serialized_msg, asm_msg.get());
+        node.HandleAdaptiveScanMatchingMessage(trajectory_id, sensor_id,
+                                     asm_msg);
       }
     }
     clock.clock = rclcpp::Time(msg.time_stamp);

@@ -35,6 +35,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 set(msg_files
+  "msg/AdaptiveScanMatching.msg"
   "msg/BagfileProgress.msg"
   "msg/HistogramBucket.msg"
   "msg/LandmarkEntry.msg"

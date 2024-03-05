@@ -279,6 +279,14 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg) {
   return std::make_tuple(point_cloud, timestamp);
 }
 
+::cartographer::sensor::AdaptiveScanMatchingData ToAdaptiveScanMatchingData(
+        const cartographer_ros_msgs::msg::AdaptiveScanMatching& msg) {
+  ::cartographer::sensor::AdaptiveScanMatchingData adaptive_scan_matching_data;
+  adaptive_scan_matching_data.time = FromRos(msg.header.stamp);
+  adaptive_scan_matching_data.scan_matching = msg.scan_matching;
+  return adaptive_scan_matching_data;
+}
+
 LandmarkData ToLandmarkData(const LandmarkList& landmark_list) {
   LandmarkData landmark_data;
   landmark_data.time = FromRos(landmark_list.header.stamp);
