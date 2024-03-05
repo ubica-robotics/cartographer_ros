@@ -6,6 +6,14 @@ Changelog for package cartographer_ros
 ----------------------
 * https://github.com/googlecartographer/cartographer_ros/compare/0.3.0...1.0.0
 
+Forthcoming
+-----------
+* [DEV-8095] Extended carto to handle adaptive correlative scan matching (`#1 <https://github.com/ubica-robotics/cartographer_ros/issues/1>`_)
+  * [DEV-8095] Extended carto to handle adaptive correlative scan matching
+  ---------
+  Co-authored-by: devaiah.arun <devaiah.arun@ubica-robotics.eu>
+* Contributors: Divin Devaiah
+
 102.0.0 (2024-03-05)
 --------------------
 * args for asserts writer backpack 3d
