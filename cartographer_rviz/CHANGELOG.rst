@@ -2,8 +2,8 @@
 Changelog for package cartographer_rviz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+102.0.0 (2024-03-05)
+--------------------
 * proper cmakelists install
 * added 100ms timeout lookuptf rviz
 * removed unused function arg + comment

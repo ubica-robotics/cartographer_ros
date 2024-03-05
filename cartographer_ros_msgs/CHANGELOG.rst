@@ -2,8 +2,8 @@
 Changelog for package cartographer_ros_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+102.0.0 (2024-03-05)
+--------------------
 * ros2 conversion
 * Fix build status on front page. (`#1483 <https://github.com/ubica-robotics/cartographer_ros/issues/1483>`_)
   * Fix build status on front page.

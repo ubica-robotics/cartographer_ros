@@ -6,8 +6,8 @@ Changelog for package cartographer_ros
 ----------------------
 * https://github.com/googlecartographer/cartographer_ros/compare/0.3.0...1.0.0
 
-Forthcoming
------------
+102.0.0 (2024-03-05)
+--------------------
 * args for asserts writer backpack 3d
 * assets writer launch conversion
 * fix assets_writer for MultiEchoLaserScan and PointCloud2
