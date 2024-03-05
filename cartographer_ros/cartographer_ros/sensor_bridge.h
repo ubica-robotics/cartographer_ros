@@ -55,8 +55,9 @@ class SensorBridge {
       const nav_msgs::msg::Odometry::ConstSharedPtr& msg);
   void HandleOdometryMessage(const std::string& sensor_id,
                              const nav_msgs::msg::Odometry::ConstSharedPtr& msg);
-  void HandleAdaptiveScanMatchingMessage(const std::string& sensor_id,
-                           const cartographer_ros_msgs::msg::AdaptiveScanMatching::ConstSharedPtr& msg);
+  void HandleAdaptiveScanMatchingMessage(
+      const std::string& sensor_id,
+      const cartographer_ros_msgs::msg::AdaptiveScanMatching::ConstSharedPtr& msg);
   void HandleNavSatFixMessage(const std::string& sensor_id,
                               const sensor_msgs::msg::NavSatFix::ConstSharedPtr& msg);
   void HandleLandmarkMessage(

@@ -153,8 +153,9 @@ void SensorBridge::HandleImuMessage(const std::string& sensor_id,
   }
 }
 
-void SensorBridge::HandleAdaptiveScanMatchingMessage(const std::string& sensor_id,
-                         const cartographer_ros_msgs::msg::AdaptiveScanMatching::ConstSharedPtr& msg) {
+void SensorBridge::HandleAdaptiveScanMatchingMessage(
+    const std::string& sensor_id,
+    const cartographer_ros_msgs::msg::AdaptiveScanMatching::ConstSharedPtr& msg) {
   auto adaptive_scan_matching_data = ToAdaptiveScanMatchingData(*msg);
   trajectory_builder_->AddSensorData(sensor_id, adaptive_scan_matching_data);
 }

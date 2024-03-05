@@ -65,7 +65,7 @@ std::tuple<::cartographer::sensor::PointCloudWithIntensities,
 ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg);
 
 ::cartographer::sensor::AdaptiveScanMatchingData ToAdaptiveScanMatchingData(
-        const cartographer_ros_msgs::msg::AdaptiveScanMatching& msg);
+    const cartographer_ros_msgs::msg::AdaptiveScanMatching& msg);
 
 ::cartographer::sensor::LandmarkData ToLandmarkData(
     const cartographer_ros_msgs::msg::LandmarkList& landmark_list);
