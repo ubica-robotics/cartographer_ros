@@ -2,8 +2,8 @@
 Changelog for package cartographer_ros_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+102.1.0 (2024-03-05)
+--------------------
 * [DEV-8095] Extended carto to handle adaptive correlative scan matching (`#1 <https://github.com/ubica-robotics/cartographer_ros/issues/1>`_)
   * [DEV-8095] Extended carto to handle adaptive correlative scan matching
   ---------
