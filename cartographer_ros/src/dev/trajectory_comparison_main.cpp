@@ -32,7 +32,7 @@
 #include "ros/time.h"
 #include "rosbag/bag.h"
 #include "rosbag/view.h"
-#include "tf2_eigen/tf2_eigen.h"
+#include "tf2_eigen/tf2_eigen.hpp"
 #include "tf2_msgs/TFMessage.h"
 
 DEFINE_string(bag_filename, "",

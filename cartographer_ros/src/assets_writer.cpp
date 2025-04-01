@@ -42,7 +42,7 @@
 #include "builtin_interfaces/msg/time.hpp"
 #include <rosbag2_cpp/reader.hpp>
 #include <rosbag2_cpp/readers/sequential_reader.hpp>
-#include "tf2_eigen/tf2_eigen.h"
+#include "tf2_eigen/tf2_eigen.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
 #include "tf2_ros/buffer.h"
 #include "urdf/model.h"
@@ -232,8 +232,13 @@ void AssetsWriter::Run(const std::string& configuration_directory,
           }
         }
 
+#ifdef PRE_JAZZY_SERIALIZED_BAG_MSG_FIELD_NAME
         while (!delayed_messages.empty() && delayed_messages.front().time_stamp <
                                                 message->time_stamp - kDelay.nanoseconds()) {
+#else
+        while (!delayed_messages.empty() && delayed_messages.front().recv_timestamp <
+                                                message->recv_timestamp - kDelay.nanoseconds()) {
+#endif
           const auto delayed_message =
               delayed_messages.front();
 
@@ -275,9 +280,15 @@ void AssetsWriter::Run(const std::string& configuration_directory,
           }
         }
         delayed_messages.push_back(*message);
+#ifdef PRE_JAZZY_SERIALIZED_BAG_MSG_FIELD_NAME
         LOG_EVERY_N(INFO, 10000)
             << "Processed " << (message->time_stamp - begin_time.nanoseconds())/1e9
             << " of " << bag_metadata.duration.count()/1e9 << " bag time seconds...";
+#else
+        LOG_EVERY_N(INFO, 10000)
+            << "Processed " << (message->recv_timestamp - begin_time.nanoseconds())/1e9
+            << " of " << bag_metadata.duration.count()/1e9 << " bag time seconds...";
+#endif
       }
     }
   } while (pipeline.back()->Flush() ==

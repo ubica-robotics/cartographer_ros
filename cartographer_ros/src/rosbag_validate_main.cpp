@@ -33,7 +33,7 @@
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
-#include "tf2_eigen/tf2_eigen.h"
+#include "tf2_eigen/tf2_eigen.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
 #include "tf2_ros/buffer.h"
 #include "urdf/model.h"
@@ -121,7 +121,7 @@ void CheckOdometryMessage(nav_msgs::msg::Odometry::ConstSharedPtr message) {
                           << " pose.position.x: " << pose.position.x
                           << " pose.position.y: " << pose.position.y
                           << " pose.position.z: " << pose.position.z
-                          << " pose.orientation Yaw: " << tf2::getYaw(pose.orientation)
+                          //<< " pose.orientation Yaw: " << tf2::getYaw(pose.orientation)
                              ;
   }
 }
@@ -371,20 +371,27 @@ void Run(const std::string& bag_filename, const bool dump_timing) {
       }
       entry.last_timestamp = time;
 
+      rcutils_time_point_value_t msg_timestamp;
+#ifdef PRE_JAZZY_SERIALIZED_BAG_MSG_FIELD_NAME
+      msg_timestamp = message->time_stamp;
+#else
+      msg_timestamp = message->recv_timestamp;
+#endif
+
       if (dump_timing) {
         CHECK(entry.timing_file != nullptr);
         (*entry.timing_file) << message_index << "\t"
-                             << message->time_stamp << "\t"
+                             << msg_timestamp << "\t"
                              << time.nanoseconds() << std::endl;
       }
 
-      double duration_serialization_sensor = (time.nanoseconds() - message->time_stamp)/1e9;
+      double duration_serialization_sensor = (time.nanoseconds() - msg_timestamp)/1e9;
       if (std::abs(duration_serialization_sensor) >
           kTimeDeltaSerializationSensorWarning) {
         std::stringstream stream;
         stream << "frame_id \"" << frame_id << "\" on topic "
                << message->topic_name << " has serialization time "
-               << message->time_stamp << " but sensor time " << time.nanoseconds()
+               << msg_timestamp << " but sensor time " << time.nanoseconds()
                << " differing by " << duration_serialization_sensor << " s.";
         if (std::abs(duration_serialization_sensor) >
             kTimeDeltaSerializationSensorError) {

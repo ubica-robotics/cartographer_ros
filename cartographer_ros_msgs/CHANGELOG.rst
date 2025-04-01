@@ -96,6 +96,19 @@ Changelog for package cartographer_ros_msgs
   [RFC=0007](https://github.com/googlecartographer/rfcs/blob/master/text/0007-nav-sat-support.md)
 * Contributors: Alexander Belyaev, Alireza, Guillaume Doisy, Michael Grupp, Mikael Arguedas, Susanne Pielawa, Wolfgang Hess, mgladkova
 
+2.0.9003 (2024-04-17)
+---------------------
+
+2.0.9002 (2024-03-15)
+---------------------
+
+2.0.9001 (2023-04-13)
+---------------------
+
+2.0.9000 (2022-03-31)
+---------------------
+* Update to latest upstream, as well as new port to ROS 2.
+
 0.3.0 (2017-11-23)
 ------------------
 * https://github.com/googlecartographer/cartographer_ros/compare/0.2.0...0.3.0
