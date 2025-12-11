@@ -160,6 +160,13 @@ void SensorBridge::HandleAdaptiveScanMatchingMessage(
   trajectory_builder_->AddSensorData(sensor_id, adaptive_scan_matching_data);
 }
 
+void SensorBridge::HandleAdaptiveMotionFilterMessage(
+    const std::string& sensor_id,
+    const cartographer_ros_msgs::msg::AdaptiveMotionFilter::ConstSharedPtr& msg) {
+  auto adaptive_motion_filter_data = ToAdaptiveMotionFilterData(*msg);
+  trajectory_builder_->AddSensorData(sensor_id, adaptive_motion_filter_data);
+}
+
 void SensorBridge::HandleLaserScanMessage(
     const std::string& sensor_id, const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg) {
   carto::sensor::PointCloudWithIntensities point_cloud;
