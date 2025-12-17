@@ -36,6 +36,7 @@ struct TrajectoryOptions {
   bool use_nav_sat;
   bool use_landmarks;
   bool use_adaptive_scan_matching;
+  bool use_adaptive_motion_filter;
   bool publish_frame_projected_to_2d;
   int num_laser_scans;
   int num_multi_echo_laser_scans;

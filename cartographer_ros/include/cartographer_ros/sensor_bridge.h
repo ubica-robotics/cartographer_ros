@@ -28,6 +28,7 @@
 #include "cartographer_ros/tf_bridge.h"
 #include "cartographer_ros_msgs/msg/landmark_list.hpp"
 #include "cartographer_ros_msgs/msg/adaptive_scan_matching.hpp"
+#include "cartographer_ros_msgs/msg/adaptive_motion_filter.hpp"
 #include <geometry_msgs/msg/transform.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
@@ -58,6 +59,9 @@ class SensorBridge {
   void HandleAdaptiveScanMatchingMessage(
       const std::string& sensor_id,
       const cartographer_ros_msgs::msg::AdaptiveScanMatching::ConstSharedPtr& msg);
+  void HandleAdaptiveMotionFilterMessage(
+      const std::string& sensor_id,
+      const cartographer_ros_msgs::msg::AdaptiveMotionFilter::ConstSharedPtr& msg);
   void HandleNavSatFixMessage(const std::string& sensor_id,
                               const sensor_msgs::msg::NavSatFix::ConstSharedPtr& msg);
   void HandleLandmarkMessage(

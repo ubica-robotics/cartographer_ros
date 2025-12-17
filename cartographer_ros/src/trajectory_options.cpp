@@ -56,10 +56,16 @@ TrajectoryOptions CreateTrajectoryOptions(
   options.use_nav_sat = lua_parameter_dictionary->GetBool("use_nav_sat");
   options.use_landmarks = lua_parameter_dictionary->GetBool("use_landmarks");
   if (lua_parameter_dictionary->HasKey("use_adaptive_scan_matching")) {
-      options.use_adaptive_scan_matching =
-          lua_parameter_dictionary->GetBool("use_adaptive_scan_matching");
+    options.use_adaptive_scan_matching =
+        lua_parameter_dictionary->GetBool("use_adaptive_scan_matching");
   } else {
-      options.use_adaptive_scan_matching = false;
+    options.use_adaptive_scan_matching = false;
+  }
+  if (lua_parameter_dictionary->HasKey("use_adaptive_motion_filter")) {
+    options.use_adaptive_motion_filter =
+        lua_parameter_dictionary->GetBool("use_adaptive_motion_filter");
+  } else {
+    options.use_adaptive_motion_filter = false;
   }
   options.publish_frame_projected_to_2d =
       lua_parameter_dictionary->GetBool("publish_frame_projected_to_2d");

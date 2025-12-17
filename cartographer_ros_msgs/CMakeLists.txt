@@ -36,6 +36,7 @@ find_package(std_msgs REQUIRED)
 
 set(msg_files
   "msg/AdaptiveScanMatching.msg"
+  "msg/AdaptiveMotionFilter.msg"
   "msg/BagfileProgress.msg"
   "msg/HistogramBucket.msg"
   "msg/LandmarkEntry.msg"

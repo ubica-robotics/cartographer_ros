@@ -417,7 +417,11 @@ Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
   }
   // AdaptiveScanMatching is optional.
   if (options.use_adaptive_scan_matching) {
-    expected_topics.insert(SensorId{SensorType::ADAPTIVE_SCAN_MATCHING, kCustomTopic});
+    expected_topics.insert(SensorId{SensorType::ADAPTIVE_SCAN_MATCHING, kAdaptiveScanMatchingTopic});
+  }
+  // AdaptiveMotionFilter is optional.
+  if (options.use_adaptive_motion_filter) {
+    expected_topics.insert(SensorId{SensorType::ADAPTIVE_MOTION_FILTER, kAdaptiveMotionFilterTopic});
   }
   return expected_topics;
 }
@@ -796,6 +800,15 @@ void Node::HandleAdaptiveScanMatchingMessage(
   absl::MutexLock lock(&mutex_);
   map_builder_bridge_->sensor_bridge(trajectory_id)
       ->HandleAdaptiveScanMatchingMessage(sensor_id, msg);
+}
+
+void Node::HandleAdaptiveMotionFilterMessage(
+    const int trajectory_id,
+    const std::string& sensor_id,
+    const cartographer_ros_msgs::msg::AdaptiveMotionFilter::ConstSharedPtr& msg) {
+  absl::MutexLock lock(&mutex_);
+  map_builder_bridge_->sensor_bridge(trajectory_id)
+      ->HandleAdaptiveMotionFilterMessage(sensor_id, msg);
 }
 
 void Node::HandleOdometryMessage(const int trajectory_id,

@@ -287,6 +287,16 @@ ToPointCloudWithIntensities(const sensor_msgs::msg::PointCloud2& msg) {
   return adaptive_scan_matching_data;
 }
 
+::cartographer::sensor::AdaptiveMotionFilterData ToAdaptiveMotionFilterData(
+        const cartographer_ros_msgs::msg::AdaptiveMotionFilter& msg) {
+  ::cartographer::sensor::AdaptiveMotionFilterData adaptive_motion_filter_data;
+  adaptive_motion_filter_data.time = FromRos(msg.header.stamp);
+  adaptive_motion_filter_data.max_time_seconds = msg.max_time_seconds;
+  adaptive_motion_filter_data.max_distance_meters = msg.max_distance_meters;
+  adaptive_motion_filter_data.max_angle_radians = msg.max_angle_radians;
+  return adaptive_motion_filter_data;
+}
+
 LandmarkData ToLandmarkData(const LandmarkList& landmark_list) {
   LandmarkData landmark_data;
   landmark_data.time = FromRos(landmark_list.header.stamp);
