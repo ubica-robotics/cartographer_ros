@@ -2,6 +2,11 @@
 Changelog for package cartographer_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [DEV-15831] Added adaptive motion filter feature (`#2 <https://github.com/ubica-robotics/cartographer_ros/issues/2>`_)
+* Co-authored-by: devaiah.arun <devaiah.arun@ubica-robotics.eu>
+
 2.0.9003 (2024-04-17)
 ---------------------
 * Fix build on Rolling. (`#74 <https://github.com/ros2/cartographer_ros/issues/74>`_)
@@ -25,6 +30,7 @@ Changelog for package cartographer_ros
 1.0.0 (2018-06-01)
 ------------------
 * https://github.com/googlecartographer/cartographer_ros/compare/0.3.0...1.0.0
+
 
 102.1.1 (2024-03-06)
 --------------------

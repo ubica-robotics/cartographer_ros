@@ -2,6 +2,9 @@
 Changelog for package cartographer_rviz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 102.1.1 (2024-03-06)
 --------------------
 

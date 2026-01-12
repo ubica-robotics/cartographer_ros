@@ -2,6 +2,44 @@
 Changelog for package cartographer_ros_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [DEV-15831] Added adaptive motion filter feature (`#2 <https://github.com/ubica-robotics/cartographer_ros/issues/2>`_)
+* 2.0.9003
+* Changelog.
+* 2.0.9002
+* Changelog.
+* 2.0.9001
+* Changelog.
+* 2.0.9000 (`#61 <https://github.com/ubica-robotics/cartographer_ros/issues/61>`_)
+* Fix up dependencies. (`#60 <https://github.com/ubica-robotics/cartographer_ros/issues/60>`_)
+  While auditing the package for release, I found a number of
+  dependencies that weren't declared, or not declared entirely
+  properly.  There were also unnecessary dependencies declared.
+  This one fixes all of the ones I noticed, though it will *not*
+  tell us if we have missed a dependency that we need.
+* 1.0.9004
+* Changelog.
+* 1.0.9003
+* Changelog.
+* 1.0.9002
+* Changelog.
+* 1.0.9001
+* Changelog.
+* Switch to a versioning scheme that encodes upstream version. (`#35 <https://github.com/ubica-robotics/cartographer_ros/issues/35>`_)
+  This also allows us to do further releases of the ROS 2 port
+  as needed.
+* Apply omnibus cartographer ROS 2 port.
+  It's too complicated to keep the old port.  Changes in this
+  port contributed by:
+  Chris Lalancette (Open Robotics)
+  Mikael Arguedas (Open Robotics)
+  Shane Loretz (Open Robotics)
+  Darby Lim (ROBOTIS)
+* Bump version in package.xml to 1.0.0
+* Add maintainers and authors to package.xml (`#886 <https://github.com/ubica-robotics/cartographer_ros/issues/886>`_)
+* Contributors: Chris Lalancette, Christoph Schütte, Divin Devaiah, Mikael Arguedas
+
 102.1.1 (2024-03-06)
 --------------------
 
