@@ -2,8 +2,8 @@
 Changelog for package cartographer_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+102.2.0 (2026-01-12)
+--------------------
 * [DEV-15831] Added adaptive motion filter feature (`#2 <https://github.com/ubica-robotics/cartographer_ros/issues/2>`_)
 * Co-authored-by: devaiah.arun <devaiah.arun@ubica-robotics.eu>
 

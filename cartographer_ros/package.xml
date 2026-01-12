@@ -17,7 +17,7 @@
 
 <package format="3">
   <name>cartographer_ros</name>
-  <version>102.1.1</version>
+  <version>102.2.0</version>
   <!--
   As of 2022-03-31, the versioning for cartographer_ros is in a complicated situation.
   Upstream https://github.com/cartographer-project/cartographer_ros seems to be moribund,
